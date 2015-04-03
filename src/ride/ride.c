@@ -6065,8 +6065,8 @@ void ride_update_max_vehicles(int rideIndex)
 			int totalFriction = 0;
 			for (int i = 0; i < numCars; i++) {
 				vehicleEntry = &rideEntry->vehicles[trainLayout[i]];
-				trainLength += vehicleEntry->var_04;
-				totalFriction += vehicleEntry->var_08;
+				trainLength += vehicleEntry->spacing;
+				totalFriction += vehicleEntry->friction;
 			}
 
 			if (trainLength <= stationLength && totalFriction <= maxFriction) {
@@ -6095,7 +6095,7 @@ void ride_update_max_vehicles(int rideIndex)
 			trainLength = 0;
 			for (int i = 0; i < maxCarsPerTrain; i++) {
 				vehicleEntry = &rideEntry->vehicles[trainLayout[i]];
-				trainLength += vehicleEntry->var_04;
+				trainLength += vehicleEntry->spacing;
 			}
 
 			int totalLength = trainLength / 2;
@@ -6121,7 +6121,7 @@ void ride_update_max_vehicles(int rideIndex)
 				int totalSpacing = 0;
 				for (int i = 0; i < maxCarsPerTrain; i++) {
 					vehicleEntry = &rideEntry->vehicles[trainLayout[i]];
-					totalSpacing += vehicleEntry->var_04;
+					totalSpacing += vehicleEntry->spacing;
 				}
 
 				totalSpacing >>= 13;
