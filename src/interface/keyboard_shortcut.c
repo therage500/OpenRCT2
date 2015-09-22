@@ -513,6 +513,11 @@ static void shortcut_quick_save_game()
 	}
 }
 
+static void shortcut_quit_game()
+{
+	game_do_command(0, 1, 0, 0, GAME_COMMAND_LOAD_OR_QUIT, 1, 0);
+}
+
 static const shortcut_action shortcut_table[SHORTCUT_COUNT] = {
 	shortcut_close_top_most_window,
 	shortcut_close_all_floating_windows,
@@ -559,6 +564,7 @@ static const shortcut_action shortcut_table[SHORTCUT_COUNT] = {
 	NULL,
 	shortcut_open_chat_window,
 	shortcut_quick_save_game,
+    shortcut_quit_game,
 };
 
 #pragma endregion
