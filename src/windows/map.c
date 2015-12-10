@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -35,6 +35,11 @@
 
 #define MINIMUM_TOOL_SIZE 1
 #define MAXIMUM_TOOL_SIZE 64
+
+#define MINIMUM_MAP_SIZE_TECHNICAL 15
+#define MAXIMUM_MAP_SIZE_TECHNICAL 256
+#define MINIMUM_MAP_SIZE_PRACTICAL MINIMUM_MAP_SIZE_TECHNICAL-2
+#define MAXIMUM_MAP_SIZE_PRACTICAL MAXIMUM_MAP_SIZE_TECHNICAL-2
 
 enum {
 	PAGE_PEEPS,
@@ -219,7 +224,7 @@ void window_map_open()
 
 	window_init_scroll_widgets(w);
 
-	w->map.rotation = RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_ROTATION, uint16);
+	w->map.rotation = get_current_rotation();
 
 	window_map_init_map();
 	RCT2_GLOBAL(0x00F64F05, uint8) = 0;
@@ -258,6 +263,8 @@ static void window_map_mouseup(rct_window *w, int widgetIndex)
 		if (tool_set(w, widgetIndex, 2))
 			break;
 		RCT2_GLOBAL(0xF1AD61, sint8) = 2;
+		// Prevent mountain tool tool size.
+		RCT2_GLOBAL(RCT2_ADDRESS_LAND_TOOL_SIZE, sint16) = max(MINIMUM_TOOL_SIZE, RCT2_GLOBAL(RCT2_ADDRESS_LAND_TOOL_SIZE, sint16));
 		show_gridlines();
 		show_land_rights();
 		show_construction_rights();
@@ -387,8 +394,8 @@ static void window_map_mousedown(int widgetIndex, rct_window *w, rct_widget *wid
  */
 static void window_map_update(rct_window *w)
 {
-	if (RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_ROTATION, uint8) != w->map.rotation) {
-		w->map.rotation = RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_ROTATION, uint8);
+	if (get_current_rotation() != w->map.rotation) {
+		w->map.rotation = get_current_rotation();
 		window_map_init_map();
 		window_map_center_on_view_point();
 	}
@@ -602,8 +609,7 @@ static void window_map_textinput(rct_window *w, int widgetIndex, char *text)
 	case WIDX_LAND_TOOL:
 		size = strtol(text, &end, 10);
 		if (*end == '\0') {
-			size = max(MINIMUM_TOOL_SIZE,size);
-			size = min(MAXIMUM_TOOL_SIZE,size);
+			size = clamp(MINIMUM_TOOL_SIZE, size, MAXIMUM_TOOL_SIZE);
 			RCT2_GLOBAL(RCT2_ADDRESS_LAND_TOOL_SIZE, sint16) = size;
 			window_invalidate(w);
 		}
@@ -611,8 +617,10 @@ static void window_map_textinput(rct_window *w, int widgetIndex, char *text)
 	case WIDX_MAP_SIZE_SPINNER:
 		size = strtol(text, &end, 10);
 		if (*end == '\0') {
-			if (size < 50) size = 50;
-			if (size > 256) size = 256;
+			// The practical size is 2 lower than the technical size
+			size += 2;
+			size=clamp(MINIMUM_MAP_SIZE_TECHNICAL, size, MAXIMUM_MAP_SIZE_TECHNICAL);
+
 			int currentSize = RCT2_GLOBAL(RCT2_ADDRESS_MAP_SIZE, uint16);
 			while (size < currentSize) {
 				map_window_decrease_map_size();
@@ -845,7 +853,7 @@ static void window_map_scrollpaint(rct_window *w, rct_drawpixelinfo *dpi, int sc
 		window_map_paint_peep_overlay(dpi);
 	else
 		window_map_paint_train_overlay(dpi);
-	
+
 	window_map_paint_hud_rectangle(dpi);
 }
 
@@ -853,7 +861,7 @@ static void window_map_scrollpaint(rct_window *w, rct_drawpixelinfo *dpi, int sc
  *
  *  rct2: 0x0068CA6C
  */
-static void window_map_init_map() 
+static void window_map_init_map()
 {
 	memset(RCT2_GLOBAL(RCT2_ADDRESS_MAP_IMAGE_DATA, void*), 0x0A0A0A0A, 256 * 256 * sizeof(uint32));
 	RCT2_GLOBAL(0x00F1AD6C, uint32) = 0;
@@ -877,7 +885,7 @@ static void window_map_center_on_view_point()
 	if (w_map == NULL)
 		return;
 
-	rct_xy16 offset = MiniMapOffsets[RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_ROTATION, uint8) & 3];
+	rct_xy16 offset = MiniMapOffsets[get_current_rotation()];
 
 	// calculate center view point of viewport and transform it to minimap coordinates
 
@@ -885,7 +893,7 @@ static void window_map_center_on_view_point()
 	dx = ((w->viewport->view_height >> 1) + w->viewport->view_y) >> 4;
 	cx += offset.x;
 	dx += offset.y;
-	
+
 	// calculate width and height of minimap
 
 	ax = w_map->widgets[WIDX_MAP].right - w_map->widgets[WIDX_MAP].left - 11;
@@ -922,7 +930,7 @@ static void window_map_show_default_scenario_editor_buttons(rct_window *w) {
 	w->widgets[WIDX_MAP_SIZE_SPINNER].type = WWT_SPINNER;
 	w->widgets[WIDX_MAP_SIZE_SPINNER_UP].type = WWT_DROPDOWN_BUTTON;
 	w->widgets[WIDX_MAP_SIZE_SPINNER_DOWN].type = WWT_DROPDOWN_BUTTON;
-	RCT2_GLOBAL(0x013CE952 + 2, uint16) = RCT2_GLOBAL(RCT2_ADDRESS_MAP_SIZE, uint16);
+	RCT2_GLOBAL(0x013CE952 + 2, uint16) = RCT2_GLOBAL(RCT2_ADDRESS_MAP_SIZE, uint16) - 2;
 }
 
 static void window_map_inputsize_land(rct_window *w)
@@ -934,8 +942,8 @@ static void window_map_inputsize_land(rct_window *w)
 
 static void window_map_inputsize_map(rct_window *w)
 {
-	((uint16*)TextInputDescriptionArgs)[0] = 50;
-	((uint16*)TextInputDescriptionArgs)[1] = 256;
+	((uint16*)TextInputDescriptionArgs)[0] = MINIMUM_MAP_SIZE_PRACTICAL;
+	((uint16*)TextInputDescriptionArgs)[1] = MAXIMUM_MAP_SIZE_PRACTICAL;
 	window_text_input_open(w, WIDX_MAP_SIZE_SPINNER, 5130, 5131, STR_NONE, STR_NONE, 4);
 }
 
@@ -967,7 +975,7 @@ static void window_map_transform_to_map_coords(sint16 *left, sint16 *top)
 	sint16 x = *left, y = *top;
 	sint16 temp;
 
-	switch (RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_ROTATION, uint32)) {
+	switch (get_current_rotation()) {
 	case 3:
 		temp = x;
 		x = y;
@@ -1076,7 +1084,7 @@ static void window_map_paint_train_overlay(rct_drawpixelinfo *dpi)
 /**
  *  The call to gfx_fill_rect was originally wrapped in sub_68DABD which made sure that arguments were ordered correctly,
  *  but it doesn't look like it's ever necessary here so the call was removed.
- * 
+ *
  *  rct2: 0x0068D8CE
  */
 static void window_map_paint_hud_rectangle(rct_drawpixelinfo *dpi)
@@ -1089,7 +1097,7 @@ static void window_map_paint_hud_rectangle(rct_drawpixelinfo *dpi)
 	if (viewport == NULL)
 		return;
 
-	rct_xy16 offset = MiniMapOffsets[RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_ROTATION, uint32) & 3];
+	rct_xy16 offset = MiniMapOffsets[get_current_rotation()];
 	sint16 left = (viewport->view_x >> 5) + offset.x;
 	sint16 right = ((viewport->view_x + viewport->view_width) >> 5) + offset.x;
 	sint16 top = (viewport->view_y >> 4) + offset.y;
@@ -1113,7 +1121,7 @@ static void window_map_paint_hud_rectangle(rct_drawpixelinfo *dpi)
 }
 
 /**
- * 
+ *
  *  rct2: 0x0068D24E
  */
 static void window_map_set_land_rights_tool_update(int x, int y)
@@ -1146,7 +1154,7 @@ static void window_map_set_land_rights_tool_update(int x, int y)
 }
 
 /**
- * 
+ *
  *  rct2: 0x00666EEF
  */
 void sub_666EEF(int x, int y, sint16 *mapX, sint16 *mapY, sint16 *mapZ, int *direction)
@@ -1168,11 +1176,11 @@ void sub_666EEF(int x, int y, sint16 *mapX, sint16 *mapY, sint16 *mapZ, int *dir
 			}
 		}
 	}
-	*direction = (window_scenery_rotation - RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_ROTATION, uint8)) & 3;
+	*direction = (window_scenery_rotation - get_current_rotation()) & 3;
 }
 
 /**
- * 
+ *
  *  rct2: 0x00666FD0
  */
 static void window_map_place_park_entrance_tool_update(int x, int y)
@@ -1216,7 +1224,7 @@ static void window_map_place_park_entrance_tool_update(int x, int y)
 }
 
 /**
- * 
+ *
  *  rct2: 0x0068D4E9
  */
 static void window_map_set_peep_spawn_tool_update(int x, int y)
@@ -1254,7 +1262,7 @@ static void window_map_set_peep_spawn_tool_update(int x, int y)
 }
 
 /**
- * 
+ *
  *  rct2: 0x006670A4
  */
 static void window_map_place_park_entrance_tool_down(int x, int y)
@@ -1281,9 +1289,8 @@ static void window_map_place_park_entrance_tool_down(int x, int y)
 	if (price == MONEY32_UNDEFINED)
 		return;
 
-	sound_play_panned(
+	audio_play_sound_at_location(
 		SOUND_PLACE_ITEM,
-		0x8001,
 		RCT2_GLOBAL(RCT2_ADDRESS_COMMAND_MAP_Z, uint16),
 		RCT2_GLOBAL(0x009DEA64, uint16),
 		RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_AGE, uint16)
@@ -1291,7 +1298,7 @@ static void window_map_place_park_entrance_tool_down(int x, int y)
 }
 
 /**
- * 
+ *
  *  rct2: 0x0068D573
  */
 static void window_map_set_peep_spawn_tool_down(int x, int y)
@@ -1325,7 +1332,7 @@ static void window_map_set_peep_spawn_tool_down(int x, int y)
 }
 
 /**
- * 
+ *
  *  rct2: 0x0068D641
  */
 static void map_window_increase_map_size()
@@ -1346,7 +1353,7 @@ static void map_window_increase_map_size()
 }
 
 /**
- * 
+ *
  *  rct2: 0x0068D6B4
  */
 static void map_window_decrease_map_size()
@@ -1538,9 +1545,6 @@ static uint16 map_window_get_pixel_colour_peep(int x, int y)
 	if (!(mapElement->properties.surface.ownership & OWNERSHIP_OWNED))
 		colour = 10 | (colour & 0xFF00);
 
-	if (!(mapElement->flags & (1 << 5)))
-		colour = 10 | (colour & 0xFF00);
-
 	while (!map_element_is_last_for_tile(mapElement++)) {
 		int mapElementType = map_element_get_type(mapElement);
 		colour &= ElementTypeMaskColour[mapElementType >> 2];
@@ -1592,11 +1596,11 @@ static uint16 map_window_get_pixel_colour_ride(int x, int y)
 
 static void map_window_set_pixels(rct_window *w)
 {
-	uint16 colour, *destination;
+	uint16 colour = 0, *destination;
 	int x, y, dx, dy;
-	
-	destination = (uint16*)((RCT2_GLOBAL(0x00F1AD6C, uint32) * 511) + RCT2_GLOBAL(0x00F1AD68, uint32) + 255);
-	switch (RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_ROTATION, uint8)) {
+
+	destination = (uint16*)((RCT2_GLOBAL(0x00F1AD6C, uint32) * 511) + RCT2_GLOBAL(RCT2_ADDRESS_MAP_IMAGE_DATA, uint32) + 255);
+	switch (get_current_rotation()) {
 	case 0:
 		x = RCT2_GLOBAL(0x00F1AD6C, uint32) * 32;
 		y = 0;
@@ -1657,7 +1661,7 @@ static void map_window_screen_to_map(int screenX, int screenY, int *mapX, int *m
 	screenY = ((screenY + 8)      ) / 2;
 	x = (screenY - screenX) * 32;
 	y = (screenX + screenY) * 32;
-	switch (RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_ROTATION, uint8) & 3) {
+	switch (get_current_rotation()) {
 	case 0:
 		*mapX = x;
 		*mapY = y;

@@ -2223,7 +2223,7 @@ STR_2213    :{SMALLFONT}{BLACK}Visa en lista över alla underhållare
 STR_2214    :Konstruktion är inte möjligt när spelet är pausat!
 STR_2215    :{STRINGID}{NEWLINE}({STRINGID})
 STR_2216    :{WINDOW_COLOUR_2}{COMMA16}{DEGREE}C
-STR_2217    :{WINDOW_COLOUR_2}{COMMA16}F
+STR_2217    :{WINDOW_COLOUR_2}{COMMA16}{DEGREE}F
 STR_2218    :{RED}{STRINGID} på {STRINGID} har inte kommit tillbaka till {STRINGID} än!{NEWLINE}Kolla om den är fast
 STR_2219    :{RED}{COMMA16} personer har dött i en olycka på {STRINGID}
 STR_2220    :{WINDOW_COLOUR_2}Parkomdöme: {BLACK}{COMMA16}
@@ -2373,7 +2373,7 @@ STR_2363    :Rutmönster på terräng
 STR_2364    :{SMALLFONT}{BLACK}Sätt på/av rutmönster på terrängen
 STR_2365    :Banken vägrar att utöka ditt lån!
 STR_2366    :Celsius ({DEGREE}C)
-STR_2367    :Fahrenheit (F)
+STR_2367    :Fahrenheit ({DEGREE}F)
 STR_2368    :Ingen
 STR_2369    :Låg
 STR_2370    :Mellan
@@ -2707,11 +2707,11 @@ STR_2697    :???
 STR_2698    :???
 STR_2699    :???
 STR_2700    :Autospar frekvens:
-STR_2701    :Varje vecka
-STR_2702    :Varannan vecka
-STR_2703    :Varje månad
-STR_2704    :Var 4:e månad
-STR_2705    :Varje år
+STR_2701    :Varje minut
+STR_2702    :Var 5:e minut
+STR_2703    :Var 15:e minut
+STR_2704    :Var 30:e minut
+STR_2705    :Varje timme
 STR_2706    :Aldrig
 STR_2707    :Öppna ett nytt fönster
 STR_2708    :{WINDOW_COLOUR_1}Är du säker på att du vill skriva över {STRINGID}?

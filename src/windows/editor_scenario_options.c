@@ -343,7 +343,7 @@ void window_editor_scenario_options_open()
 		148,
 		window_editor_scenario_options_page_events[0],
 		WC_EDITOR_SCENARIO_OPTIONS,
-		WF_2
+		WF_NO_SCROLLING
 	);
 	w->widgets = window_editor_scenario_options_widgets[0];
 	w->enabled_widgets = window_editor_scenario_options_page_enabled_widgets[0];
@@ -559,7 +559,7 @@ static void window_editor_scenario_options_financial_mousedown(int widgetIndex, 
 		break;
 	}
 
-	if(RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_FLAGS, uint8) & SCREEN_FLAGS_PLAYING) {
+	if(RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_FLAGS, uint8) == SCREEN_FLAGS_PLAYING) {
 		window_invalidate_by_class(WC_FINANCES);
 		window_invalidate_by_class(WC_BOTTOM_TOOLBAR);
 	}
@@ -830,7 +830,7 @@ static void window_editor_scenario_options_guests_invalidate(rct_window *w)
 	} else {
 		w->widgets[WIDX_CASH_PER_GUEST].type = WWT_SPINNER;
 		w->widgets[WIDX_CASH_PER_GUEST_INCREASE].type = WWT_DROPDOWN_BUTTON;
-		w->widgets[WIDX_CASH_PER_GUEST_DECREASE].type = WWT_DROPDOWN_BUTTON;		
+		w->widgets[WIDX_CASH_PER_GUEST_DECREASE].type = WWT_DROPDOWN_BUTTON;
 	}
 
 	// Guests prefer less intense rides checkbox
@@ -874,7 +874,7 @@ static void window_editor_scenario_options_guests_paint(rct_window *w, rct_drawp
 		arg = RCT2_GLOBAL(RCT2_ADDRESS_GUEST_INITIAL_CASH, money16);
 		gfx_draw_string_left(dpi, 3246, &arg, 0, x, y);
 	}
-	
+
 	// Guest initial happiness label
 	x = w->x + 8;
 	y = w->y + w->widgets[WIDX_GUEST_INITIAL_HAPPINESS].top;
@@ -1035,7 +1035,7 @@ static void window_editor_scenario_options_park_mousedown(int widgetIndex, rct_w
 			dropdownWidget->right - dropdownWidget->left - 3
 		);
 
-		gDropdownItemsChecked = 1 << (RCT2_GLOBAL(RCT2_ADDRESS_PARK_FLAGS, uint32) & PARK_FLAGS_PARK_FREE_ENTRY ? 0 : 1);
+		dropdown_set_checked((RCT2_GLOBAL(RCT2_ADDRESS_PARK_FLAGS, uint32) & PARK_FLAGS_PARK_FREE_ENTRY ? 0 : 1), true);
 		break;
 	}
 }
@@ -1177,7 +1177,7 @@ static void window_editor_scenario_options_park_paint(rct_window *w, rct_drawpix
 		x = w->x + 8;
 		y = w->y + w->widgets[WIDX_LAND_COST].top;
 		gfx_draw_string_left(dpi, 3277, NULL, 0, x, y);
-		
+
 		// Cost to buy land value
 		x = w->x + w->widgets[WIDX_LAND_COST].left + 1;
 		y = w->y + w->widgets[WIDX_LAND_COST].top;
@@ -1190,7 +1190,7 @@ static void window_editor_scenario_options_park_paint(rct_window *w, rct_drawpix
 		x = w->x + 8;
 		y = w->y + w->widgets[WIDX_CONSTRUCTION_RIGHTS_COST].top;
 		gfx_draw_string_left(dpi, 3278, NULL, 0, x, y);
-		
+
 		// Cost to buy construction rights value
 		x = w->x + w->widgets[WIDX_CONSTRUCTION_RIGHTS_COST].left + 1;
 		y = w->y + w->widgets[WIDX_CONSTRUCTION_RIGHTS_COST].top;
@@ -1208,7 +1208,7 @@ static void window_editor_scenario_options_park_paint(rct_window *w, rct_drawpix
 		stringId = RCT2_GLOBAL(RCT2_ADDRESS_PARK_FLAGS, uint32) & PARK_FLAGS_PARK_FREE_ENTRY ? 3279 : 3280;
 		gfx_draw_string_left(dpi, 1193, &stringId, 0, x, y);
 	}
-	
+
 	if (w->widgets[WIDX_ENTRY_PRICE].type != WWT_EMPTY) {
 		// Entry price label
 		x = w->x + w->widgets[WIDX_PAY_FOR_PARK_OR_RIDES].right + 8;

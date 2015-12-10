@@ -1,9 +1,9 @@
 /*****************************************************************************
  * Copyright (c) 2014 Ted John
  * OpenRCT2, an open source clone of Roller Coaster Tycoon 2.
- * 
+ *
  * This file is part of OpenRCT2.
- * 
+ *
  * OpenRCT2 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
- 
+
 #ifndef _GAME_H_
 #define _GAME_H_
 
@@ -44,7 +44,7 @@ enum GAME_COMMAND {
 	GAME_COMMAND_PLACE_SCENERY,
 	GAME_COMMAND_SET_WATER_HEIGHT,
 	GAME_COMMAND_PLACE_PATH,
-	GAME_COMMAND_18,
+	GAME_COMMAND_PLACE_PATH_FROM_TRACK,
 	GAME_COMMAND_REMOVE_PATH,
 	GAME_COMMAND_CHANGE_SURFACE_STYLE,
 	GAME_COMMAND_SET_RIDE_PRICE,
@@ -83,7 +83,11 @@ enum GAME_COMMAND {
 	GAME_COMMAND_SET_LARGE_SCENERY_COLOUR,
 	GAME_COMMAND_SET_BANNER_COLOUR,
 	GAME_COMMAND_SET_LAND_OWNERSHIP,
-	GAME_COMMAND_CLEAR_SCENERY
+	GAME_COMMAND_CLEAR_SCENERY,
+	GAME_COMMAND_SET_BANNER_NAME,
+	GAME_COMMAND_SET_SIGN_NAME,
+	GAME_COMMAND_SET_BANNER_STYLE,
+	GAME_COMMAND_SET_SIGN_STYLE
 };
 
 enum {
@@ -110,6 +114,7 @@ GAME_COMMAND_CALLBACK_POINTER* game_command_callback_get_callback(int index);
 
 extern int gGameSpeed;
 extern float gDayNightCycle;
+extern bool gInUpdateCode;
 
 void game_increase_game_speed();
 void game_reduce_game_speed();
@@ -140,5 +145,6 @@ void rct2_exit_reason(rct_string_id title, rct_string_id body);
 void game_autosave();
 void game_convert_strings_to_utf8();
 void game_convert_strings_to_rct2(rct_s6_data *s6);
+void game_fix_save_vars();
 
 #endif

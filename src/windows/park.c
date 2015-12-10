@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -122,7 +122,7 @@ static rct_widget window_park_guests_widgets[] = {
 
 static rct_widget window_park_price_widgets[] = {
 	MAIN_PARK_WIDGETS,
-	{ WWT_24,				1,	7,		146,	50,		61,		STR_ADMISSION_PRICE,			STR_NONE },							// 
+	{ WWT_24,				1,	7,		146,	50,		61,		STR_ADMISSION_PRICE,			STR_NONE },							//
 	{ WWT_SPINNER,			1,	147,	222,	50,		61,		0x595,							STR_NONE },							// price
 	{ WWT_DROPDOWN_BUTTON,	1,	211,	221,	51,		55,		STR_NUMERIC_UP,					STR_NONE },							// increase price
 	{ WWT_DROPDOWN_BUTTON,	1,	211,	221,	56,		60,		STR_NUMERIC_DOWN,				STR_NONE },							// decrease price
@@ -486,7 +486,7 @@ static uint32 window_park_page_enabled_widgets[] = {
 	(1 << WIDX_TAB_5) |
 	(1 << WIDX_TAB_6) |
 	(1 << WIDX_TAB_7) |
-	(1 << WIDX_INCREASE_PRICE) | 
+	(1 << WIDX_INCREASE_PRICE) |
 	(1 << WIDX_DECREASE_PRICE),
 
 	(1 << WIDX_CLOSE) |
@@ -541,7 +541,7 @@ static void window_park_draw_tab_images(rct_drawpixelinfo *dpi, rct_window *w);
 static void window_park_set_disabled_tabs(rct_window *w);
 
 /**
- * 
+ *
  *  rct2: 0x00667F11
  */
 rct_window *window_park_open()
@@ -575,14 +575,14 @@ static void window_park_set_disabled_tabs(rct_window *w)
 
 static void window_park_prepare_window_title_text()
 {
-	RCT2_GLOBAL(0x013CE952, uint16) = RCT2_GLOBAL(RCT2_ADDRESS_PARK_NAME, rct_string_id);
+	RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint16) = RCT2_GLOBAL(RCT2_ADDRESS_PARK_NAME, rct_string_id);
 	RCT2_GLOBAL(0x013CE952 + 2, uint32) = RCT2_GLOBAL(RCT2_ADDRESS_PARK_NAME_ARGS, uint32);
 }
 
 #pragma region Entrance page
 
 /**
- * 
+ *
  *  rct2: 0x00667C48
  */
 void window_park_entrance_open()
@@ -607,7 +607,7 @@ void window_park_entrance_open()
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066860C
  */
 static void window_park_entrance_close(rct_window *w)
@@ -645,7 +645,7 @@ static void window_park_entrance_mouseup(rct_window *w, int widgetIndex)
 		window_scroll_to_viewport(w);
 		break;
 	case WIDX_RENAME:
-		RCT2_GLOBAL(0x013CE962, uint32) = RCT2_GLOBAL(0x013573D8, uint32);
+		RCT2_GLOBAL(0x013CE962, uint32) = RCT2_GLOBAL(RCT2_ADDRESS_PARK_NAME_ARGS, uint32);
 		window_text_input_open(w, WIDX_RENAME, STR_PARK_NAME, STR_ENTER_PARK_NAME, RCT2_GLOBAL(RCT2_ADDRESS_PARK_NAME, rct_string_id), 0, 32);
 		break;
 	case WIDX_CLOSE_LIGHT:
@@ -689,24 +689,24 @@ static void window_park_entrance_mousedown(int widgetIndex, rct_window*w, rct_wi
 		);
 
 		if (park_is_open()) {
-			RCT2_GLOBAL(0x009DEBA2, sint16) = 0;
-			gDropdownItemsChecked |= (1 << 1);
+			gDropdownHighlightedIndex = 0;
+			dropdown_set_checked(1, true);
 		} else {
-			RCT2_GLOBAL(0x009DEBA2, sint16) = 1;
-			gDropdownItemsChecked |= (1 << 0);
+			gDropdownHighlightedIndex = 1;
+			dropdown_set_checked(0, true);
 		}
 	}
 }
 
 /**
- * 
+ *
  *  rct2: 0x006682B8
  */
 static void window_park_entrance_dropdown(rct_window *w, int widgetIndex, int dropdownIndex)
 {
 	if (widgetIndex == WIDX_OPEN_OR_CLOSE) {
 		if (dropdownIndex == -1)
-			dropdownIndex = RCT2_GLOBAL(0x009DEBA2, sint16);
+			dropdownIndex = gDropdownHighlightedIndex;
 
 		if (dropdownIndex != 0) {
 			RCT2_GLOBAL(RCT2_ADDRESS_GAME_COMMAND_ERROR_TITLE, uint16) = 1724;
@@ -719,7 +719,7 @@ static void window_park_entrance_dropdown(rct_window *w, int widgetIndex, int dr
 }
 
 /**
- * 
+ *
  *  rct2: 0x006686B5
  */
 static void window_park_entrance_update(rct_window *w)
@@ -807,7 +807,7 @@ void window_park_entrance_tool_update_land_rights(sint16 x, sint16 y){
 }
 
 /**
- * 
+ *
  *  rct2: 0x006681D1
  */
 static void window_park_entrance_toolupdate(rct_window* w, int widgetIndex, int x, int y)
@@ -820,7 +820,7 @@ static void window_park_entrance_toolupdate(rct_window* w, int widgetIndex, int 
 }
 
 /**
- * 
+ *
  *  rct2: 0x006681E6
  */
 static void window_park_entrance_tooldown(rct_window* w, int widgetIndex, int x, int y)
@@ -860,13 +860,13 @@ static void window_park_entrance_tooldown(rct_window* w, int widgetIndex, int x,
 }
 
 /**
- * 
+ *
  *  rct2: 0x006681FB
  */
 static void window_park_entrance_tooldrag(rct_window* w, int widgetIndex, int x, int y)
 {
 	rct_window* w2 = window_find_by_number(0xB, 0);
-	
+
 	if (!w2) {
 		switch (widgetIndex){
 		case WIDX_BUY_LAND_RIGHTS:
@@ -904,7 +904,7 @@ static void window_park_entrance_tooldrag(rct_window* w, int widgetIndex, int x,
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066822A
  */
 static void window_park_entrance_toolabort(rct_window *w, int widgetIndex)
@@ -915,7 +915,7 @@ static void window_park_entrance_toolabort(rct_window *w, int widgetIndex)
 			hide_land_rights();
 		else
 			hide_construction_rights();
-	} 
+	}
 	//else if (widgetIndex == WIDX_BUY_CONSTRUCTION_RIGHTS) {
 	//	hide_gridlines();
 	//	hide_construction_rights();
@@ -923,7 +923,7 @@ static void window_park_entrance_toolabort(rct_window *w, int widgetIndex)
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066848B
  */
 static void window_park_entrance_textinput(rct_window *w, int widgetIndex, char *text)
@@ -933,7 +933,7 @@ static void window_park_entrance_textinput(rct_window *w, int widgetIndex, char 
 }
 
 /**
- * 
+ *
  *  rct2: 0x00667FDC
  */
 static void window_park_entrance_invalidate(rct_window *w)
@@ -948,7 +948,7 @@ static void window_park_entrance_invalidate(rct_window *w)
 	window_park_set_pressed_tab(w);
 
 	// Set open / close park button state
-	RCT2_GLOBAL(0x013CE952, uint16) = RCT2_GLOBAL(RCT2_ADDRESS_PARK_NAME, rct_string_id);
+	RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint16) = RCT2_GLOBAL(RCT2_ADDRESS_PARK_NAME, rct_string_id);
 	RCT2_GLOBAL(0x013CE952 + 2, uint32) = RCT2_GLOBAL(RCT2_ADDRESS_PARK_NAME_ARGS, uint32);
 	window_park_entrance_widgets[WIDX_OPEN_OR_CLOSE].image = park_is_open() ? SPR_OPEN : SPR_CLOSED;
 	window_park_entrance_widgets[WIDX_CLOSE_LIGHT].image = SPR_G2_RCT1_CLOSE_BUTTON_0 + !park_is_open() * 2 + widget_is_pressed(w, WIDX_CLOSE_LIGHT);
@@ -961,7 +961,7 @@ static void window_park_entrance_invalidate(rct_window *w)
 		w->disabled_widgets |= (1 << WIDX_OPEN_OR_CLOSE) | (1 << WIDX_CLOSE_LIGHT) | (1 << WIDX_OPEN_LIGHT);
 	else
 		w->disabled_widgets &= ~((1 << WIDX_OPEN_OR_CLOSE) | (1 << WIDX_CLOSE_LIGHT) | (1 << WIDX_OPEN_LIGHT));
-	
+
 	// Only allow purchase of land when there is money
 	if (RCT2_GLOBAL(RCT2_ADDRESS_PARK_FLAGS, uint32) & PARK_FLAGS_NO_MONEY)
 		window_park_entrance_widgets[WIDX_BUY_LAND_RIGHTS].type = WWT_EMPTY;
@@ -977,7 +977,7 @@ static void window_park_entrance_invalidate(rct_window *w)
 	window_park_entrance_widgets[WIDX_STATUS].right = w->width - 26;
 	window_park_entrance_widgets[WIDX_STATUS].top = w->height - 13;
 	window_park_entrance_widgets[WIDX_STATUS].bottom = w->height - 3;
-	
+
 	if (theme_get_preset()->features.rct1_park_lights) {
 		window_park_entrance_widgets[WIDX_OPEN_OR_CLOSE].type = WWT_EMPTY;
 		if (RCT2_GLOBAL(RCT2_ADDRESS_OBJECTIVE_TYPE, uint8) == OBJECTIVE_GUESTS_AND_RATING) {
@@ -1014,7 +1014,7 @@ static void window_park_entrance_invalidate(rct_window *w)
 }
 
 /**
- * 
+ *
  *  rct2: 0x006680D0
  */
 static void window_park_entrance_paint(rct_window *w, rct_drawpixelinfo *dpi)
@@ -1032,7 +1032,7 @@ static void window_park_entrance_paint(rct_window *w, rct_drawpixelinfo *dpi)
 	}
 
 	// Draw park closed / open label
-	RCT2_GLOBAL(0x013CE952, uint16) = park_is_open() ? STR_PARK_OPEN : STR_PARK_CLOSED;
+	RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint16) = park_is_open() ? STR_PARK_OPEN : STR_PARK_CLOSED;
 
 	labelWidget = &window_park_entrance_widgets[WIDX_STATUS];
 	gfx_draw_string_centred_clipped(
@@ -1047,12 +1047,13 @@ static void window_park_entrance_paint(rct_window *w, rct_drawpixelinfo *dpi)
 }
 
 /**
- * 
+ *
  *  rct2: 0x00669B55
  */
 static void window_park_init_viewport(rct_window *w)
 {
 	int i, x, y, z, r, xy, zr, viewportFlags;
+	x = y = z = r = xy = zr = 0;
 	rct_viewport *viewport;
 	rct_widget *viewportWidget;
 
@@ -1064,7 +1065,7 @@ static void window_park_init_viewport(rct_window *w)
 			x = RCT2_ADDRESS(RCT2_ADDRESS_PARK_ENTRANCE_X, sint16)[i] + 16;
 			y = RCT2_ADDRESS(RCT2_ADDRESS_PARK_ENTRANCE_Y, sint16)[i] + 16;
 			z = RCT2_ADDRESS(RCT2_ADDRESS_PARK_ENTRANCE_Z, sint16)[i] + 32;
-			r = RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_ROTATION, uint8);
+			r = get_current_rotation();
 
 			xy = 0x40000000 | (y << 16) | x;
 			zr = (z << 16) | (r << 8);
@@ -1481,7 +1482,7 @@ static void window_park_price_invalidate(rct_window *w)
 static void window_park_price_paint(rct_window *w, rct_drawpixelinfo *dpi)
 {
 	int x, y;
-	
+
 	window_draw_widgets(w, dpi);
 	window_park_draw_tab_images(dpi, w);
 
@@ -1574,7 +1575,7 @@ static void window_park_stats_invalidate(rct_window *w)
 static void window_park_stats_paint(rct_window *w, rct_drawpixelinfo *dpi)
 {
 	int x, y, parkSize, stringIndex;
-	
+
 	window_draw_widgets(w, dpi);
 	window_park_draw_tab_images(dpi, w);
 
@@ -1588,20 +1589,20 @@ static void window_park_stats_paint(rct_window *w, rct_drawpixelinfo *dpi)
 		stringIndex = STR_PARK_SIZE_IMPERIAL_LABEL;
 		parkSize = squaredmetres_to_squaredfeet(parkSize);
 	}
-	RCT2_GLOBAL(0x013CE952, uint32) = parkSize;
+	RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint32) = parkSize;
 	gfx_draw_string_left(dpi, stringIndex, (void*)0x013CE952, 0, x, y);
 	y += 10;
 
 	// Draw number of rides / attractions
 	if (w->list_information_type != (uint16)-1) {
-		RCT2_GLOBAL(0x013CE952, uint32) = w->list_information_type;
+		RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint32) = w->list_information_type;
 		gfx_draw_string_left(dpi, STR_NUMBER_OF_RIDES_LABEL, (void*)0x013CE952, 0, x, y);
 	}
 	y += 10;
 
 	// Draw number of staff
 	if (w->var_48C != -1) {
-		RCT2_GLOBAL(0x013CE952, uint32) = w->var_48C;
+		RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint32) = w->var_48C;
 		gfx_draw_string_left(dpi, STR_STAFF_LABEL, (void*)0x013CE952, 0, x, y);
 	}
 	y += 10;
@@ -1615,7 +1616,7 @@ static void window_park_stats_paint(rct_window *w, rct_drawpixelinfo *dpi)
 #pragma region Objective page
 
 /**
- * 
+ *
  *  rct2: 0x00667E57
  */
 void window_park_objective_open()
@@ -1647,7 +1648,7 @@ void window_park_objective_open()
 }
 
 /**
- * 
+ *
  *  rct2: 0x006695AA
  */
 static void window_park_objective_mouseup(rct_window *w, int widgetIndex)
@@ -1689,7 +1690,7 @@ static void window_park_objective_resize(rct_window *w)
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066966C
  */
 static void window_park_objective_update(rct_window *w)
@@ -1699,7 +1700,7 @@ static void window_park_objective_update(rct_window *w)
 }
 
 /**
- * 
+ *
  *  rct2: 0x006695CC
  */
 static void window_park_objective_textinput(rct_window *w, int widgetIndex, char *text)
@@ -1711,7 +1712,7 @@ static void window_park_objective_textinput(rct_window *w, int widgetIndex, char
 }
 
 /**
- * 
+ *
  *  rct2: 0x006693B2
  */
 static void window_park_objective_invalidate(rct_window *w)
@@ -1721,7 +1722,7 @@ static void window_park_objective_invalidate(rct_window *w)
 	window_park_set_pressed_tab(w);
 	window_park_prepare_window_title_text();
 
-	// 
+	//
 	if (RCT2_GLOBAL(RCT2_ADDRESS_PARK_FLAGS, uint32) & PARK_FLAGS_SCENARIO_COMPLETE_NAME_INPUT)
 		window_park_objective_widgets[WIDX_ENTER_NAME].type = WWT_DROPDOWN_BUTTON;
 	else
@@ -1732,21 +1733,21 @@ static void window_park_objective_invalidate(rct_window *w)
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066945C
  */
 static void window_park_objective_paint(rct_window *w, rct_drawpixelinfo *dpi)
 {
 	int x, y;
-	
+
 	window_draw_widgets(w, dpi);
 	window_park_draw_tab_images(dpi, w);
 
 	// Scenario description
 	x = w->x + window_park_objective_widgets[WIDX_PAGE_BACKGROUND].left + 4;
 	y = w->y + window_park_objective_widgets[WIDX_PAGE_BACKGROUND].top + 7;
-	strcpy((char*)0x009BC677, RCT2_ADDRESS(RCT2_ADDRESS_SCENARIO_DETAILS, char));
-	RCT2_GLOBAL(0x013CE952, short) = 3165;
+	safe_strncpy((char*)0x009BC677, RCT2_ADDRESS(RCT2_ADDRESS_SCENARIO_DETAILS, char), 256);
+	RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, short) = 3165;
 	y += gfx_draw_string_left_wrapped(dpi, (void*)0x013CE952, x, y, 222, 1191, 0);
 	y += 5;
 
@@ -1755,13 +1756,13 @@ static void window_park_objective_paint(rct_window *w, rct_drawpixelinfo *dpi)
 	y += 10;
 
 	// Objective
-	RCT2_GLOBAL(0x013CE952, short) = RCT2_GLOBAL(RCT2_ADDRESS_OBJECTIVE_NUM_GUESTS, uint16);
+	RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, short) = RCT2_GLOBAL(RCT2_ADDRESS_OBJECTIVE_NUM_GUESTS, uint16);
 	RCT2_GLOBAL(0x013CE954, short) = date_get_total_months(MONTH_OCTOBER, RCT2_GLOBAL(RCT2_ADDRESS_OBJECTIVE_YEAR, uint8));
 	RCT2_GLOBAL(0x013CE956, int) = RCT2_GLOBAL(RCT2_ADDRESS_OBJECTIVE_CURRENCY, sint32);
 
 	y += gfx_draw_string_left_wrapped(dpi, (void*)0x013CE952, x, y, 221, 2385 + RCT2_GLOBAL(RCT2_ADDRESS_OBJECTIVE_TYPE, uint8), 0);
 	y += 5;
-	
+
 	// Objective outcome
 	if (RCT2_GLOBAL(RCT2_ADDRESS_COMPLETED_COMPANY_VALUE, money32) != MONEY32_UNDEFINED) {
 		if (RCT2_GLOBAL(RCT2_ADDRESS_COMPLETED_COMPANY_VALUE, money32) == 0x80000001) {
@@ -1769,7 +1770,7 @@ static void window_park_objective_paint(rct_window *w, rct_drawpixelinfo *dpi)
 			gfx_draw_string_left_wrapped(dpi, NULL, x, y, 222, 2789, 0);
 		} else {
 			// Objective completed
-			RCT2_GLOBAL(0x013CE952, int) = RCT2_GLOBAL(RCT2_ADDRESS_COMPLETED_COMPANY_VALUE, money32);
+			RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, int) = RCT2_GLOBAL(RCT2_ADDRESS_COMPLETED_COMPANY_VALUE, money32);
 			gfx_draw_string_left_wrapped(dpi, (void*)0x013CE952, x, y, 222, 2788, 0);
 		}
 	}
@@ -1980,7 +1981,7 @@ static void window_park_draw_tab_images(rct_drawpixelinfo *dpi, rct_window *w)
 		if (w->page == WINDOW_PARK_PAGE_GUESTS)
 			sprite_idx += (w->frame_no / 8) % 8;
 		gfx_draw_sprite(dpi, sprite_idx, w->x + w->widgets[WIDX_TAB_3].left, w->y + w->widgets[WIDX_TAB_3].top, 0);
-		
+
 		sprite_idx = *RCT2_GLOBAL(0x00982708, sint32*) + 1;
 		if (w->page == WINDOW_PARK_PAGE_GUESTS)
 			sprite_idx += w->var_492 & 0xFFFFFFFC;

@@ -5,6 +5,7 @@
 #include "../network/network.h"
 #include "../platform/platform.h"
 #include "chat.h"
+#include "../util/util.h"
 
 #define CHAT_HISTORY_SIZE 10
 #define CHAT_INPUT_SIZE 256
@@ -59,6 +60,10 @@ void chat_update()
 
 void chat_draw()
 {
+	if (network_get_mode() == NETWORK_MODE_NONE || network_get_status() != NETWORK_STATUS_CONNECTED || network_get_authstatus() != NETWORK_AUTH_OK) {
+		gChatOpen = false;
+		return;
+	}
 	rct_drawpixelinfo *dpi = (rct_drawpixelinfo*)RCT2_ADDRESS_SCREEN_DPI;
 	_chatLeft = 10;
 	_chatTop = RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_HEIGHT, uint16) - 40 - ((CHAT_HISTORY_SIZE + 1) * 10);
@@ -74,14 +79,14 @@ void chat_draw()
 		if (!gChatOpen && SDL_TICKS_PASSED(SDL_GetTicks(), chat_history_get_time(i) + 10000)) {
 			break;
 		}
-		strcpy(lineBuffer, chat_history_get(i));
+		safe_strncpy(lineBuffer, chat_history_get(i), CHAT_INPUT_SIZE + 10);
 		gfx_set_dirty_blocks(x, y, x + gfx_get_string_width(lineBuffer), y + 12);
 		gfx_draw_string(dpi, lineBuffer, 255, x, y);
 	}
 	if (gChatOpen) {
 		lineCh = utf8_write_codepoint(lineCh, FORMAT_OUTLINE);
 		lineCh = utf8_write_codepoint(lineCh, FORMAT_CELADON);
-		strcpy(lineCh, _chatCurrentLine);
+		safe_strncpy(lineCh, _chatCurrentLine, CHAT_INPUT_SIZE);
 		y = _chatBottom - 10;
 		gfx_set_dirty_blocks(x, y, x + gfx_get_string_width(lineBuffer) + 7, y + 12);
 		if (_chatCaretTicks < 15) {
@@ -98,7 +103,7 @@ void chat_history_add(const char *src)
 {
 	int index = _chatHistoryIndex % CHAT_HISTORY_SIZE;
 	memset(_chatHistory[index], 0, CHAT_INPUT_SIZE);
-	memcpy(_chatHistory[index], src, min(strlen(src), CHAT_INPUT_SIZE));
+	memcpy(_chatHistory[index], src, min(strlen(src), CHAT_INPUT_SIZE - 1));
 	_chatHistoryTime[index] = SDL_GetTicks();
 	_chatHistoryIndex++;
 	Mixer_Play_Effect(SOUND_NEWS_ITEM, 0, SDL_MIX_MAXVOLUME, 0, 1.5f, true);
@@ -108,7 +113,9 @@ void chat_input(int c)
 {
 	switch (c) {
 	case SDL_SCANCODE_RETURN:
-		network_send_chat(_chatCurrentLine);
+		if (strlen(_chatCurrentLine) > 0) {
+			network_send_chat(_chatCurrentLine);
+		}
 		chat_clear_input();
 		chat_close();
 		break;

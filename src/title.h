@@ -1,9 +1,9 @@
 /*****************************************************************************
  * Copyright (c) 2014 Ted John
  * OpenRCT2, an open source clone of Roller Coaster Tycoon 2.
- * 
+ *
  * This file is part of OpenRCT2.
- * 
+ *
  * OpenRCT2 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
- 
+
 #ifndef _TITLE_H_
 #define _TITLE_H_
 
@@ -47,6 +47,7 @@ void title_update();
 void title_skip_from_beginning();
 void title_script_get_line(SDL_RWops *file, char *parts);
 bool title_refresh_sequence();
+void title_fix_location();
 void DrawOpenRCT2(int x, int y);
 
 #endif

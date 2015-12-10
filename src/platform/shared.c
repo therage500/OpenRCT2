@@ -1,9 +1,9 @@
 /*****************************************************************************
  * Copyright (c) 2014 Ted John
  * OpenRCT2, an open source clone of Roller Coaster Tycoon 2.
- * 
+ *
  * This file is part of OpenRCT2.
- * 
+ *
  * OpenRCT2 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -20,6 +20,7 @@
 
 #include "../addresses.h"
 #include "../audio/audio.h"
+#include "../audio/mixer.h"
 #include "../config.h"
 #include "../cursors.h"
 #include "../drawing/drawing.h"
@@ -30,9 +31,11 @@
 #include "../input.h"
 #include "../localisation/localisation.h"
 #include "../openrct2.h"
+#include "../title.h"
+#include "../util/util.h"
 #include "platform.h"
 
-typedef void(*update_palette_func)(char*, int, int);
+typedef void(*update_palette_func)(const uint8*, int, int);
 
 openrct2_cursor gCursorState;
 const unsigned char *gKeysState;
@@ -58,9 +61,13 @@ SDL_Texture *gBufferTexture = NULL;
 SDL_PixelFormat *gBufferTextureFormat = NULL;
 SDL_Color gPalette[256];
 uint32 gPaletteHWMapped[256];
+bool gHardwareDisplay;
 
-static SDL_Surface *_surface;
-static SDL_Palette *_palette;
+bool gSteamOverlayActive = false;
+
+static SDL_Surface *_surface = NULL;
+static SDL_Surface *_RGBASurface = NULL;
+static SDL_Palette *_palette = NULL;
 
 static void *_screenBuffer;
 static int _screenBufferSize;
@@ -72,6 +79,9 @@ static SDL_Cursor* _cursors[CURSOR_COUNT];
 static const int _fullscreen_modes[] = { 0, SDL_WINDOW_FULLSCREEN, SDL_WINDOW_FULLSCREEN_DESKTOP };
 static unsigned int _lastGestureTimestamp;
 static float _gestureRadius;
+
+static uint32 _pixelBeforeOverlay;
+static uint32 _pixelAfterOverlay;
 
 static void platform_create_window();
 static void platform_load_cursors();
@@ -117,7 +127,7 @@ void platform_update_fullscreen_resolutions()
 	gNumResolutions = 0;
 	for (i = 0; i < numDisplayModes; i++) {
 		SDL_GetDisplayMode(displayIndex, i, &mode);
-		
+
 		aspectRatio = (float)mode.w / mode.h;
 		if (gResolutionsAllowAnyAspectRatio || fabs(desktopAspectRatio - aspectRatio) < 0.0001f) {
 			gResolutions[gNumResolutions].width = mode.w;
@@ -179,13 +189,46 @@ void platform_get_closest_resolution(int inWidth, int inHeight, int *outWidth, i
 	}
 }
 
+static void read_center_pixel(int width, int height, uint32 *pixel) {
+	SDL_Rect centerPixelRegion = {width / 2, height / 2, 1, 1};
+	SDL_RenderReadPixels(gRenderer, &centerPixelRegion, SDL_PIXELFORMAT_RGBA8888, pixel, sizeof(uint32));
+}
+
+// Should be called before SDL_RenderPresent to capture frame buffer before Steam overlay is drawn.
+static void overlay_pre_render_check(int width, int height) {
+	read_center_pixel(width, height, &_pixelBeforeOverlay);
+}
+
+// Should be called after SDL_RenderPresent, when Steam overlay has had the chance to be drawn.
+static void overlay_post_render_check(int width, int height) {
+	static bool overlayActive = false;
+	static bool pausedBeforeOverlay = false;
+
+	read_center_pixel(width, height, &_pixelAfterOverlay);
+
+	// Detect an active Steam overlay by checking if the center pixel is changed by the gray fade.
+	// Will not be triggered by applications rendering to corners, like FRAPS, MSI Afterburner and Friends popups.
+	bool newOverlayActive = _pixelBeforeOverlay != _pixelAfterOverlay;
+
+	// Toggle game pause state consistently with base pause state
+	if (!overlayActive && newOverlayActive) {
+		pausedBeforeOverlay = RCT2_GLOBAL(RCT2_ADDRESS_GAME_PAUSED, uint32) & 1;
+
+		if (!pausedBeforeOverlay) pause_toggle();
+	} else if (overlayActive && !newOverlayActive && !pausedBeforeOverlay) {
+		pause_toggle();
+	}
+
+	overlayActive = newOverlayActive;
+}
+
 void platform_draw()
 {
 	int width = RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_WIDTH, uint16);
 	int height = RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_HEIGHT, uint16);
 
 	if (!gOpenRCT2Headless) {
-		if (gConfigGeneral.hardware_display) {
+		if (gHardwareDisplay) {
 			void *pixels;
 			int pitch;
 			if (SDL_LockTexture(gBufferTexture, NULL, &pixels, &pitch) == 0) {
@@ -198,7 +241,7 @@ void platform_draw()
 				else
 					if (pitch == (width * 2) + padding) {
 						uint16 *dst = pixels;
-						for (int y = height; y > 0; y++) {
+						for (int y = height; y > 0; y--) {
 							for (int x = width; x > 0; x--) { *dst++ = *(uint16 *)(&gPaletteHWMapped[*src++]); }
 							dst = (uint16*)(((uint8 *)dst) + padding);
 						}
@@ -206,7 +249,7 @@ void platform_draw()
 					else
 						if (pitch == width + padding) {
 							uint8 *dst = pixels;
-							for (int y = height; y > 0; y++) {
+							for (int y = height; y > 0; y--) {
 								for (int x = width; x > 0; x--) { *dst++ = *(uint8 *)(&gPaletteHWMapped[*src++]); }
 								dst += padding;
 							}
@@ -215,7 +258,16 @@ void platform_draw()
 			}
 
 			SDL_RenderCopy(gRenderer, gBufferTexture, NULL, NULL);
+
+			if (gSteamOverlayActive && gConfigGeneral.steam_overlay_pause) {
+				overlay_pre_render_check(width, height);
+			}
+
 			SDL_RenderPresent(gRenderer);
+
+			if (gSteamOverlayActive && gConfigGeneral.steam_overlay_pause) {
+				overlay_post_render_check(width, height);
+			}
 		}
 		else {
 			// Lock the surface before setting its pixels
@@ -234,9 +286,24 @@ void platform_draw()
 				SDL_UnlockSurface(_surface);
 
 			// Copy the surface to the window
-			if (SDL_BlitSurface(_surface, NULL, SDL_GetWindowSurface(gWindow), NULL)) {
-				log_fatal("SDL_BlitSurface %s", SDL_GetError());
-				exit(1);
+			if (gConfigGeneral.window_scale == 1 || gConfigGeneral.window_scale <= 0)
+			{
+				if (SDL_BlitSurface(_surface, NULL, SDL_GetWindowSurface(gWindow), NULL)) {
+					log_fatal("SDL_BlitSurface %s", SDL_GetError());
+					exit(1);
+				}
+			} else {
+				// first blit to rgba surface to change the pixel format
+				if (SDL_BlitSurface(_surface, NULL, _RGBASurface, NULL)) {
+					log_fatal("SDL_BlitSurface %s", SDL_GetError());
+					exit(1);
+				}
+				// then scale to window size. Without changing to RGBA first, SDL complains
+				// about blit configurations being incompatible.
+				if (SDL_BlitScaled(_RGBASurface, NULL, SDL_GetWindowSurface(gWindow), NULL)) {
+					log_fatal("SDL_BlitScaled %s", SDL_GetError());
+					exit(1);
+				}
 			}
 			if (SDL_UpdateWindowSurface(gWindow)) {
 				log_fatal("SDL_UpdateWindowSurface %s", SDL_GetError());
@@ -249,31 +316,42 @@ void platform_draw()
 static void platform_resize(int width, int height)
 {
 	uint32 flags;
+	int dst_w = (int)(width / gConfigGeneral.window_scale);
+	int dst_h = (int)(height / gConfigGeneral.window_scale);
 
-	RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_WIDTH, uint16) = width;
-	RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_HEIGHT, uint16) = height;
+	RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_WIDTH, uint16) = dst_w;
+	RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_HEIGHT, uint16) = dst_h;
 
 	platform_refresh_video();
 
 	flags = SDL_GetWindowFlags(gWindow);
 
 	if ((flags & SDL_WINDOW_MINIMIZED) == 0) {
-		window_resize_gui(width, height);
-		window_relocate_windows(width, height);
+		window_resize_gui(dst_w, dst_h);
+		window_relocate_windows(dst_w, dst_h);
 	}
 
+	title_fix_location();
 	gfx_invalidate_screen();
 
 	// Check if the window has been resized in windowed mode and update the config file accordingly
 	// This is called in rct2_update_2 and is only called after resizing a window has finished
-	if ((flags & (SDL_WINDOW_MAXIMIZED | SDL_WINDOW_MINIMIZED |
-		SDL_WINDOW_FULLSCREEN | SDL_WINDOW_FULLSCREEN_DESKTOP)) == 0) {
+	const int nonWindowFlags =
+		SDL_WINDOW_MAXIMIZED | SDL_WINDOW_MINIMIZED | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_FULLSCREEN_DESKTOP;
+	if (!(flags & nonWindowFlags)) {
 		if (width != gConfigGeneral.window_width || height != gConfigGeneral.window_height) {
 			gConfigGeneral.window_width = width;
 			gConfigGeneral.window_height = height;
 			config_save_default();
 		}
 	}
+}
+
+void platform_trigger_resize()
+{
+	int w, h;
+	SDL_GetWindowSize(gWindow, &w, &h);
+	platform_resize(w, h);
 }
 
 static uint8 soft_light(uint8 a, uint8 b)
@@ -299,12 +377,13 @@ static uint8 lerp(uint8 a, uint8 b, float t)
 	return (uint8)(a + amount);
 }
 
-void platform_update_palette(char* colours, int start_index, int num_colours)
+void platform_update_palette(const uint8* colours, int start_index, int num_colours)
 {
 	SDL_Surface *surface;
 	int i;
+	colours += start_index * 4;
 
-	for (i = 0; i < 256; i++) {
+	for (i = start_index; i < num_colours + start_index; i++) {
 		gPalette[i].r = colours[2];
 		gPalette[i].g = colours[1];
 		gPalette[i].b = colours[0];
@@ -323,7 +402,7 @@ void platform_update_palette(char* colours, int start_index, int num_colours)
 		}
 	}
 
-	if (!gOpenRCT2Headless && !gConfigGeneral.hardware_display) {
+	if (!gOpenRCT2Headless && !gHardwareDisplay) {
 		surface = SDL_GetWindowSurface(gWindow);
 		if (!surface) {
 			log_fatal("SDL_GetWindowSurface failed %s", SDL_GetError());
@@ -355,23 +434,37 @@ void platform_process_messages()
 			rct2_quit();
 			break;
 		case SDL_WINDOWEVENT:
+			// HACK: Fix #2158, OpenRCT2 does not draw if it does not think that the window is
+			//                  visible - due a bug in SDL2.0.3 this hack is required if the
+			//                  window is maximised, minimised and then restored again.
+			if (e.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) {
+				if (SDL_GetWindowFlags(gWindow) & SDL_WINDOW_MAXIMIZED) {
+					SDL_RestoreWindow(gWindow);
+					SDL_MaximizeWindow(gWindow);
+				}
+				if (SDL_GetWindowFlags(gWindow) & SDL_WINDOW_FULLSCREEN_DESKTOP) {
+					SDL_RestoreWindow(gWindow);
+					SDL_SetWindowFullscreen(gWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
+				}
+			}
+
 			if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
 				platform_resize(e.window.data1, e.window.data2);
 			if (gConfigSound.audio_focus && gConfigSound.sound) {
 				if (e.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) {
-					unpause_sounds();
+					Mixer_SetVolume(1);
 				}
 				if (e.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
-					pause_sounds();
+					Mixer_SetVolume(0);
 				}
 			}
 			break;
 		case SDL_MOUSEMOTION:
-			RCT2_GLOBAL(0x0142406C, int) = e.motion.x;
-			RCT2_GLOBAL(0x01424070, int) = e.motion.y;
+			RCT2_GLOBAL(0x0142406C, int) = (int)(e.motion.x / gConfigGeneral.window_scale);
+			RCT2_GLOBAL(0x01424070, int) = (int)(e.motion.y / gConfigGeneral.window_scale);
 
-			gCursorState.x = e.motion.x;
-			gCursorState.y = e.motion.y;
+			gCursorState.x = (int)(e.motion.x / gConfigGeneral.window_scale);
+			gCursorState.y = (int)(e.motion.y / gConfigGeneral.window_scale);
 			break;
 		case SDL_MOUSEWHEEL:
 			if (gConsoleOpen) {
@@ -381,8 +474,8 @@ void platform_process_messages()
 			gCursorState.wheel += e.wheel.y * 128;
 			break;
 		case SDL_MOUSEBUTTONDOWN:
-			RCT2_GLOBAL(0x01424318, int) = e.button.x;
-			RCT2_GLOBAL(0x0142431C, int) = e.button.y;
+			RCT2_GLOBAL(0x01424318, int) = (int)(e.button.x / gConfigGeneral.window_scale);
+			RCT2_GLOBAL(0x0142431C, int) = (int)(e.button.y / gConfigGeneral.window_scale);
 			switch (e.button.button) {
 			case SDL_BUTTON_LEFT:
 				store_mouse_input(1);
@@ -400,8 +493,8 @@ void platform_process_messages()
 			}
 			break;
 		case SDL_MOUSEBUTTONUP:
-			RCT2_GLOBAL(0x01424318, int) = e.button.x;
-			RCT2_GLOBAL(0x0142431C, int) = e.button.y;
+			RCT2_GLOBAL(0x01424318, int) = (int)(e.button.x / gConfigGeneral.window_scale);
+			RCT2_GLOBAL(0x0142431C, int) = (int)(e.button.y / gConfigGeneral.window_scale);
 			switch (e.button.button) {
 			case SDL_BUTTON_LEFT:
 				store_mouse_input(2);
@@ -540,7 +633,7 @@ void platform_process_messages()
 			}
 			break;
 		case SDL_TEXTEDITING:
-			strcpy(gTextInputComposition, e.edit.text);
+			safe_strncpy(gTextInputComposition, e.edit.text, min(e.edit.length, 32));
 			gTextInputCompositionStart = e.edit.start;
 			gTextInputCompositionLength = e.edit.length;
 			gTextInputCompositionActive = gTextInputComposition[0] != 0;
@@ -590,6 +683,8 @@ static void platform_close_window()
 		SDL_FreeSurface(_surface);
 	if (_palette != NULL)
 		SDL_FreePalette(_palette);
+	if (_RGBASurface != NULL)
+		SDL_FreeSurface(_RGBASurface);
 	platform_unload_cursors();
 }
 
@@ -598,6 +693,14 @@ void platform_init()
 	platform_create_window();
 	gKeysPressed = malloc(sizeof(unsigned char) * 256);
 	memset(gKeysPressed, 0, sizeof(unsigned char) * 256);
+
+	// Set the highest palette entry to white.
+	// This fixes a bug with the TT:rainbow road due to the
+	// image not using the correct white palette entry.
+	gPalette[255].a = 0;
+	gPalette[255].r = 255;
+	gPalette[255].g = 255;
+	gPalette[255].b = 255;
 }
 
 static void platform_create_window()
@@ -626,6 +729,8 @@ static void platform_create_window()
 
 	RCT2_GLOBAL(0x009E2D8C, sint32) = 0;
 
+	gHardwareDisplay = gConfigGeneral.hardware_display;
+
 	// Create window in window first rather than fullscreen so we have the display the window is on first
 	gWindow = SDL_CreateWindow(
 		"OpenRCT2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_RESIZABLE
@@ -643,13 +748,16 @@ static void platform_create_window()
 
 	platform_update_fullscreen_resolutions();
 	platform_set_fullscreen_mode(gConfigGeneral.fullscreen_mode);
+
+	// Check if steam overlay renderer is loaded into the process
+	gSteamOverlayActive = platform_check_steam_overlay_attached();
 }
 
 int platform_scancode_to_rct_keycode(int sdl_key)
 {
 	char keycode = (char)SDL_GetKeyFromScancode((SDL_Scancode)sdl_key);
 
-	// Until we reshufle the text files to use the new positions 
+	// Until we reshufle the text files to use the new positions
 	// this will suffice to move the majority to the correct positions.
 	// Note any special buttons PgUp PgDwn are mapped wrong.
 	if (keycode >= 'a' && keycode <= 'z')
@@ -804,12 +912,22 @@ void platform_refresh_video()
 {
 	int width = RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_WIDTH, uint16);
 	int height = RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_HEIGHT, uint16);
-	
+
 	SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, gConfigGeneral.minimize_fullscreen_focus_loss ? "1" : "0");
 
-	if (gConfigGeneral.hardware_display) {
+	log_verbose("HardwareDisplay: %s", gHardwareDisplay ? "true" : "false");
+
+	if (gHardwareDisplay) {
 		if (gRenderer == NULL)
 			gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+
+		if (gRenderer == NULL) {
+			log_warning("SDL_CreateRenderer failed: %s", SDL_GetError());
+			log_warning("Falling back to software rendering...");
+			gHardwareDisplay = false;
+			platform_refresh_video(); // try again without hardware rendering
+			return;
+		}
 
 		if (gBufferTexture != NULL)
 			SDL_DestroyTexture(gBufferTexture);
@@ -826,23 +944,31 @@ void platform_refresh_video()
 				pixelformat = format;
 			}
 		}
-	
+
 		gBufferTexture = SDL_CreateTexture(gRenderer, pixelformat, SDL_TEXTUREACCESS_STREAMING, width, height);
 		Uint32 format;
 		SDL_QueryTexture(gBufferTexture, &format, 0, 0, 0);
 		gBufferTextureFormat = SDL_AllocFormat(format);
 		platform_refresh_screenbuffer(width, height, width);
+		// Load the current palette into the HWmapped version.
+		for (int i = 0; i < 256; ++i) {
+			gPaletteHWMapped[i] = SDL_MapRGB(gBufferTextureFormat, gPalette[i].r, gPalette[i].g, gPalette[i].b);
+		}
 	} else {
 		if (_surface != NULL)
 			SDL_FreeSurface(_surface);
+		if (_RGBASurface != NULL)
+			SDL_FreeSurface(_RGBASurface);
 		if (_palette != NULL)
 			SDL_FreePalette(_palette);
 
 		_surface = SDL_CreateRGBSurface(0, width, height, 8, 0, 0, 0, 0);
+		_RGBASurface = SDL_CreateRGBSurface(0, width, height, 32, 0, 0, 0, 0);
+		SDL_SetSurfaceBlendMode(_RGBASurface, SDL_BLENDMODE_NONE);
 		_palette = SDL_AllocPalette(256);
 
-		if (!_surface || !_palette) {
-			log_fatal("%p || %p == NULL %s", _surface, _palette, SDL_GetError());
+		if (!_surface || !_palette || !_RGBASurface) {
+			log_fatal("%p || %p || %p == NULL %s", _surface, _palette, _RGBASurface, SDL_GetError());
 			exit(-1);
 		}
 
@@ -906,4 +1032,29 @@ static void platform_refresh_screenbuffer(int width, int height, int pitch)
 	RCT2_GLOBAL(RCT2_ADDRESS_DIRTY_BLOCK_HEIGHT, uint16) = 8;
 	RCT2_GLOBAL(RCT2_ADDRESS_DIRTY_BLOCK_COLUMNS, uint32) = (width >> 6) + 1;
 	RCT2_GLOBAL(RCT2_ADDRESS_DIRTY_BLOCK_ROWS, uint32) = (height >> 3) + 1;
+}
+
+void platform_hide_cursor()
+{
+	SDL_ShowCursor(SDL_DISABLE);
+}
+
+void platform_show_cursor()
+{
+	SDL_ShowCursor(SDL_ENABLE);
+}
+
+void platform_get_cursor_position(int *x, int *y)
+{
+	SDL_GetMouseState(x, y);
+}
+
+void platform_set_cursor_position(int x, int y)
+{
+	SDL_WarpMouseInWindow(NULL, x, y);
+}
+
+unsigned int platform_get_ticks()
+{
+	return SDL_GetTicks();
 }

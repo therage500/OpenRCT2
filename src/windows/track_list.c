@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -30,6 +30,7 @@
 #include "error.h"
 #include "../interface/themes.h"
 #include "../rct1.h"
+#include "../network/network.h"
 
 enum {
 	WIDX_BACKGROUND,
@@ -145,6 +146,13 @@ void window_track_list_open(ride_list_item item)
 	RCT2_GLOBAL(RCT2_ADDRESS_TRACK_DESIGN_SCENERY_TOGGLE, uint8) = 0;
 	window_push_others_right(w);
 	RCT2_GLOBAL(RCT2_ADDRESS_TRACK_PREVIEW_ROTATION, uint8) = 2;
+
+#ifndef NETWORK_DISABLE
+	// TODO: FIX NETWORK TRACKS
+	// Until tracks work with the network this will disable them
+	if (network_get_mode() != NETWORK_MODE_NONE)
+		RCT2_ADDRESS(RCT2_ADDRESS_TRACK_LIST, utf8)[0] = 0;
+#endif
 }
 
 /**
@@ -153,12 +161,12 @@ void window_track_list_open(ride_list_item item)
  */
 static void window_track_list_select(rct_window *w, int index)
 {
-	uint8 *trackDesignItem, *trackDesignList = RCT2_ADDRESS(RCT2_ADDRESS_TRACK_LIST, uint8);
+	utf8 *trackDesignItem, *trackDesignList = RCT2_ADDRESS(RCT2_ADDRESS_TRACK_LIST, utf8);
 	rct_track_design *trackDesign;
 
 	w->track_list.var_480 = index;
 
-	sound_play_panned(SOUND_CLICK_1, w->x + (w->width / 2), 0, 0, 0);
+	audio_play_sound_panned(SOUND_CLICK_1, w->x + (w->width / 2), 0, 0, 0);
 	if (!(RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_FLAGS, uint8) & SCREEN_FLAGS_TRACK_MANAGER) && index == 0) {
 		window_close(w);
 		ride_construct_new(_window_track_list_item);
@@ -172,7 +180,7 @@ static void window_track_list_select(rct_window *w, int index)
 		index--;
 
 	trackDesignItem = trackDesignList + (index * 128);
-	RCT2_GLOBAL(0x00F4403C, uint8*) = trackDesignItem;
+	RCT2_GLOBAL(0x00F4403C, utf8*) = trackDesignItem;
 
 	window_track_list_format_name(
 		(char*)0x009BC313,
@@ -328,7 +336,7 @@ static void window_track_list_scrollmouseover(rct_window *w, int scrollIndex, in
  */
 static void window_track_list_tooltip(rct_window* w, int widgetIndex, rct_string_id *stringId)
 {
-	RCT2_GLOBAL(0x013CE952, uint16) = STR_LIST;
+	RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint16) = STR_LIST;
 }
 
 /**
@@ -348,7 +356,7 @@ static void window_track_list_invalidate(rct_window *w)
 	if (!(entry->flags & RIDE_ENTRY_FLAG_SEPARATE_RIDE_NAME) || rideTypeShouldLoseSeparateFlag(entry))
 		stringId = _window_track_list_item.type + 2;
 
-	RCT2_GLOBAL(0x013CE952, uint16) = stringId;
+	RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint16) = stringId;
 	if (RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_FLAGS, uint8) & SCREEN_FLAGS_TRACK_MANAGER) {
 		window_track_list_widgets[WIDX_TITLE].image = STR_TRACK_DESIGNS;
 		window_track_list_widgets[WIDX_TRACK_LIST].tooltip = STR_CLICK_ON_DESIGN_TO_RENAME_OR_DELETE_IT;
@@ -382,7 +390,8 @@ static void window_track_list_paint(rct_window *w, rct_drawpixelinfo *dpi)
 {
 	rct_widget *widget;
 	rct_track_design *trackDesign = NULL;
-	uint8 *image, *trackDesignList = RCT2_ADDRESS(RCT2_ADDRESS_TRACK_LIST, uint8);
+	uint8 *image;
+	utf8 *trackDesignList = RCT2_ADDRESS(RCT2_ADDRESS_TRACK_LIST, utf8);
 	uint16 holes, speed, drops, dropHeight, inversions;
 	fixed32_2dp rating;
 	int trackIndex, x, y, colour, gForces, airTime;
@@ -402,7 +411,7 @@ static void window_track_list_paint(rct_window *w, rct_drawpixelinfo *dpi)
 	widget = &window_track_list_widgets[WIDX_TRACK_PREVIEW];
 	x = w->x + widget->left + 1;
 	y = w->y + widget->top + 1;
-	colour = RCT2_GLOBAL(0x0141FC44 + (w->colours[0] * 8), uint8);
+	colour = ColourMapA[w->colours[0]].darkest;
 	gfx_fill_rect(dpi, x, y, x + 369, y + 216, colour);
 
 	trackDesign = track_get_info(trackIndex, &image);
@@ -514,7 +523,7 @@ static void window_track_list_paint(rct_window *w, rct_drawpixelinfo *dpi)
 			}
 		}
 	}
-	
+
 	if (ride_type_has_flag(track_td6->type, RIDE_TYPE_FLAG_HAS_DROPS)) {
 		// Drops
 		drops = track_td6->drops & 0x3F;
@@ -559,9 +568,9 @@ static void window_track_list_scrollpaint(rct_window *w, rct_drawpixelinfo *dpi,
 {
 	rct_string_id stringId, stringId2;
 	int i, x, y, colour;
-	uint8 *trackDesignItem, *trackDesignList = RCT2_ADDRESS(RCT2_ADDRESS_TRACK_LIST, uint8);
+	utf8 *trackDesignItem, *trackDesignList = RCT2_ADDRESS(RCT2_ADDRESS_TRACK_LIST, utf8);
 
-	colour = RCT2_GLOBAL(0x00141FC48 + (w->colours[0] * 8), uint8);
+	colour = ColourMapA[w->colours[0]].mid_light;
 	colour = (colour << 24) | (colour << 16) | (colour << 8) | colour;
 	gfx_clear(dpi, colour);
 

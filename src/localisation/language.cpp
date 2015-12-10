@@ -43,7 +43,7 @@ enum {
 	RCT2_LANGUAGE_ID_CHINESE_SIMPLIFIED,
 	RCT2_LANGUAGE_ID_CHINESE_TRADITIONAL,
 	RCT2_LANGUAGE_ID_12,
-	RCT2_LANGUAGE_ID_PORTUGESE,
+	RCT2_LANGUAGE_ID_PORTUGUESE,
 	RCT2_LANGUAGE_ID_END = 255
 };
 
@@ -61,12 +61,19 @@ static TTFFontSetDescriptor TTFFontSimSun = {{
 	{ "simsun.ttc",		13,		1,		0,		20,		nullptr },
 }};
 
-static TTFFontSetDescriptor TTFFontMalgun = { {
-	{ "malgun.ttf",		8,		-1,		-3,		6,		nullptr },
-	{ "malgun.ttf",		11,		1,		-2,		14,		nullptr },
-	{ "malgun.ttf",		12,		1,		-4,		14,		nullptr },
-	{ "malgun.ttf",		13,		1,		0,		20,		nullptr },
-} };
+static TTFFontSetDescriptor TTFFontGulim = {{
+	{ "gulim.ttc",		11,		1,		0,		15,		nullptr },
+	{ "gulim.ttc",		12,		1,		0,		17,		nullptr },
+	{ "gulim.ttc",		12,		1,		0,		17,		nullptr },
+	{ "gulim.ttc",		13,		1,		0,		20,		nullptr },
+}};
+
+static TTFFontSetDescriptor TTFFontArial = {{
+	{ "arial.ttf",		8,		0,		-1,		6,		nullptr },
+	{ "arial.ttf",		10,		0,		-1,		12,		nullptr },
+	{ "arial.ttf",		11,		0,		-1,		12,		nullptr },
+	{ "arial.ttf",		12,		0,		-1,		20,		nullptr },
+}};
 
 const language_descriptor LanguagesDescriptors[LANGUAGE_COUNT] = {
 	{ "",			 "",						 "",						"",							FONT_OPENRCT2_SPRITE,	RCT2_LANGUAGE_ID_ENGLISH_UK				},	// LANGUAGE_UNDEFINED
@@ -76,15 +83,17 @@ const language_descriptor LanguagesDescriptors[LANGUAGE_COUNT] = {
 	{ "nl-NL",		"Dutch",					"Nederlands",				"dutch",					FONT_OPENRCT2_SPRITE,	RCT2_LANGUAGE_ID_DUTCH					},	// LANGUAGE_DUTCH
 	{ "fr-FR",		"French",					"Fran\xC3\xA7" "ais",		"french",					FONT_OPENRCT2_SPRITE,	RCT2_LANGUAGE_ID_FRENCH					},	// LANGUAGE_FRENCH
 	{ "hu-HU",		"Hungarian",				"Magyar",					"hungarian",				FONT_OPENRCT2_SPRITE,	RCT2_LANGUAGE_ID_ENGLISH_UK				},	// LANGUAGE_HUNGARIAN
-	{ "pl-PL",		"Polish",					"Polski",					"polish",					FONT_OPENRCT2_SPRITE,	RCT2_LANGUAGE_ID_ENGLISH_UK				},	// LANGUAGE_POLISH
+	{ "pl-PL",		"Polish",					"Polski",					"polish",					&TTFFontArial,			RCT2_LANGUAGE_ID_ENGLISH_UK				},	// LANGUAGE_POLISH
 	{ "es-ES",		"Spanish",					"Espa\xC3\xB1ol",			"spanish_sp",				FONT_OPENRCT2_SPRITE,	RCT2_LANGUAGE_ID_SPANISH				},	// LANGUAGE_SPANISH
 	{ "sv-SE",		"Swedish",					"Svenska",					"swedish",					FONT_OPENRCT2_SPRITE,	RCT2_LANGUAGE_ID_SWEDISH				},	// LANGUAGE_SWEDISH
 	{ "it-IT",		"Italian",					"Italiano",					"italian",					FONT_OPENRCT2_SPRITE,	RCT2_LANGUAGE_ID_ITALIAN				},	// LANGUAGE_ITALIAN
-	{ "pt-BR",		"Portuguese (BR)",			"Portug\xC3\xAAs (BR)",		"portuguese_br",			FONT_OPENRCT2_SPRITE,	RCT2_LANGUAGE_ID_PORTUGESE				},	// LANGUAGE_PORTUGUESE_BR
+	{ "pt-BR",		"Portuguese (BR)",			"Portugu\xC3\xAAs (BR)",	"portuguese_br",			FONT_OPENRCT2_SPRITE,	RCT2_LANGUAGE_ID_PORTUGUESE				},	// LANGUAGE_PORTUGUESE_BR
 	{ "zh-Hant",	"Chinese (Traditional)",	"Chinese (Traditional)",	"chinese_traditional",		&TTFFontMingLiu,		RCT2_LANGUAGE_ID_CHINESE_TRADITIONAL	},	// LANGUAGE_CHINESE_TRADITIONAL
 	{ "zh-Hans",	"Chinese (Simplified)",		"Chinese (Simplified)",		"chinese_simplified",		&TTFFontSimSun,			RCT2_LANGUAGE_ID_CHINESE_SIMPLIFIED		},	// LANGUAGE_CHINESE_SIMPLIFIED
 	{ "fi-FI",		"Finnish",					"Suomi",					"finnish",					FONT_OPENRCT2_SPRITE,	RCT2_LANGUAGE_ID_ENGLISH_UK				},	// LANGUAGE_FINNISH
-	{ "kr-KR",		"Korean",					"Korean",					"korean",					&TTFFontMalgun,			RCT2_LANGUAGE_ID_KOREAN					},	// LANGUAGE_KOREAN
+	{ "ko",			"Korean",					"Korean",					"korean",					&TTFFontGulim,			RCT2_LANGUAGE_ID_KOREAN					},	// LANGUAGE_KOREAN
+	{ "ru-RU",		"Russian",					"Russian",					"russian",					&TTFFontArial,			RCT2_LANGUAGE_ID_ENGLISH_UK				},	// LANGUAGE_RUSSIAN
+	{ "cz-CZ",		"Czech",					"Czech",					"czech",					&TTFFontArial,			RCT2_LANGUAGE_ID_ENGLISH_UK				},	// LANGUAGE_CZECH
 };
 
 int gCurrentLanguage = LANGUAGE_UNDEFINED;
@@ -164,6 +173,11 @@ int language_open(int id)
 			gCurrentTTFFontSet = LanguagesDescriptors[id].font;
 			if (!ttf_initialise()) {
 				log_warning("Unable to initialise TrueType fonts.");
+
+				// Fall back to sprite font
+				gUseTrueTypeFont = false;
+				gCurrentTTFFontSet = nullptr;
+				return 0;
 			}
 		}
 

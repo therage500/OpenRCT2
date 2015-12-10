@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -99,11 +99,11 @@ enum {
 };
 
 enum {
-	AUTOSAVE_EVERY_WEEK,
-	AUTOSAVE_EVERY_2_WEEKS,
-	AUTOSAVE_EVERY_MONTH,
-	AUTOSAVE_EVERY_4_MONTHS,
-	AUTOSAVE_EVERY_YEAR,
+	AUTOSAVE_EVERY_MINUTE,
+	AUTOSAVE_EVERY_5MINUTES,
+	AUTOSAVE_EVERY_15MINUTES,
+	AUTOSAVE_EVERY_30MINUTES,
+	AUTOSAVE_EVERY_HOUR,
 	AUTOSAVE_NEVER
 };
 
@@ -167,6 +167,9 @@ typedef struct {
 	uint8 day_night_cycle;
 	uint8 upper_case_banners;
 	uint8 allow_loading_with_incorrect_checksum;
+	uint8 steam_overlay_pause;
+	float window_scale;
+	uint8 show_fps;
 } general_configuration;
 
 typedef struct {
@@ -214,6 +217,14 @@ typedef struct {
 	utf8string player_name;
 	uint32 default_port;
 	uint8 stay_connected;
+	uint8 advertise;
+	uint8 maxplayers;
+	utf8string server_name;
+	utf8string server_description;
+	utf8string master_server_url;
+	utf8string provider_name;
+	utf8string provider_email;
+	utf8string provider_website;
 } network_configuration;
 
 typedef struct theme_window {
@@ -230,9 +241,10 @@ typedef struct {
 	uint8 rct1_scenario_font;
 } theme_features;
 
+#define THEME_PRESET_NAME_SIZE 256
 
 typedef struct theme_preset {
-	char name[256];
+	char name[THEME_PRESET_NAME_SIZE];
 	theme_window *windows;
 
 	// Add structures for any other settings here
@@ -260,8 +272,10 @@ typedef struct {
 	uint8 y;				// LOCATION
 } title_command;
 
+#define TITLE_SEQUENCE_NAME_SIZE 256
+
 typedef struct {
-	char name[256];
+	char name[TITLE_SEQUENCE_NAME_SIZE];
 	char path[MAX_PATH]; // Needed for non-modifiable presets
 	char (*saves)[TITLE_SEQUENCE_MAX_SAVE_LENGTH];
 	title_command *commands;

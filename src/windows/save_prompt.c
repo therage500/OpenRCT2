@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -72,6 +72,7 @@ static void window_save_prompt_close(rct_window *w);
 static void window_save_prompt_mouseup(rct_window *w, int widgetIndex);
 static void window_save_prompt_invalidate(rct_window *w);
 static void window_save_prompt_paint(rct_window *w, rct_drawpixelinfo *dpi);
+static void window_save_prompt_callback(int result);
 
 static rct_window_event_list window_save_prompt_events = {
 	window_save_prompt_close,
@@ -191,7 +192,7 @@ void window_save_prompt_open()
 
 	// Pause the game
 	RCT2_GLOBAL(RCT2_ADDRESS_GAME_PAUSED, uint8) |= 2;
-	pause_sounds();
+	audio_pause_sounds();
 	window_invalidate_by_class(WC_TOP_TOOLBAR);
 
 	stringId = prompt_mode + STR_LOAD_GAME_PROMPT_TITLE;
@@ -211,7 +212,7 @@ static void window_save_prompt_close(rct_window *w)
 {
 	// Unpause the game
 	RCT2_GLOBAL(RCT2_ADDRESS_GAME_PAUSED, uint8) &= ~2;
-	unpause_sounds();
+	audio_unpause_sounds();
 	window_invalidate_by_class(WC_TOP_TOOLBAR);
 }
 
@@ -237,6 +238,7 @@ static void window_save_prompt_mouseup(rct_window *w, int widgetIndex)
 		case WIDX_SAVE:
 			save_game_as();
 			window_close(w);
+			gLoadSaveCallback = window_save_prompt_callback;
 			break;
 		case WIDX_DONT_SAVE:
 			game_load_or_quit_no_save_prompt();
@@ -259,11 +261,6 @@ static void window_save_prompt_mouseup(rct_window *w, int widgetIndex)
 			return;
 		}
 	}
-
-	if (RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_AGE, uint16) < 3840) {
-		game_load_or_quit_no_save_prompt();
-		return;
-	}
 }
 
 static void window_save_prompt_invalidate(rct_window *w)
@@ -274,4 +271,11 @@ static void window_save_prompt_invalidate(rct_window *w)
 static void window_save_prompt_paint(rct_window *w, rct_drawpixelinfo *dpi)
 {
 	window_draw_widgets(w, dpi);
+}
+
+static void window_save_prompt_callback(int result)
+{
+	if (result == MODAL_RESULT_OK) {
+		game_load_or_quit_no_save_prompt();
+	}
 }

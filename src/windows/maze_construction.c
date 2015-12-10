@@ -143,7 +143,7 @@ static void window_maze_construction_construct(int direction);
  */
 rct_window *window_maze_construction_open()
 {
-	rct_window *w = window_create(0, 29, 166, 200, &window_maze_construction_events, WC_RIDE_CONSTRUCTION, WF_9);
+	rct_window *w = window_create(0, 29, 166, 200, &window_maze_construction_events, WC_RIDE_CONSTRUCTION, WF_NO_AUTO_CLOSE);
 	w->widgets = window_maze_construction_widgets;
 	w->enabled_widgets = 0x6F0001C4;
 
@@ -172,7 +172,7 @@ static void window_maze_construction_close(rct_window *w)
 	// In order to cancel the yellow arrow correctly the
 	// selection tool should be cancelled.
 	tool_cancel();
-	
+
 	hide_gridlines();
 
 	uint8 rideIndex = _currentRideIndex;
@@ -225,7 +225,7 @@ static void window_maze_construction_mouseup(rct_window *w, int widgetIndex)
 	case WIDX_MAZE_DIRECTION_SE:
 	case WIDX_MAZE_DIRECTION_SW:
 		window_maze_construction_construct(
-			((widgetIndex - WIDX_MAZE_DIRECTION_NW) - RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_ROTATION, uint8)) & 3
+			((widgetIndex - WIDX_MAZE_DIRECTION_NW) - get_current_rotation()) & 3
 		);
 		break;
 	}
@@ -360,20 +360,19 @@ static void window_maze_construction_entrance_tooldown(int x, int y, rct_window*
 	RCT2_GLOBAL(0x00141E9AE, rct_string_id) = is_exit ? 1144 : 1145;
 
 	money32 cost = game_do_command(
-		x, 
-		GAME_COMMAND_FLAG_APPLY | ((direction ^ 2) << 8), 
-		y, 
+		x,
+		GAME_COMMAND_FLAG_APPLY | ((direction ^ 2) << 8),
+		y,
 		rideIndex | (is_exit << 8),
-		GAME_COMMAND_PLACE_RIDE_ENTRANCE_OR_EXIT, 
-		RCT2_GLOBAL(0x00F44193, uint8), 
+		GAME_COMMAND_PLACE_RIDE_ENTRANCE_OR_EXIT,
+		RCT2_GLOBAL(0x00F44193, uint8),
 		0);
 
 	if (cost == MONEY32_UNDEFINED)
 		return;
 
-	sound_play_panned(
+	audio_play_sound_at_location(
 		SOUND_PLACE_ITEM,
-		0x8001,
 		RCT2_GLOBAL(RCT2_ADDRESS_COMMAND_MAP_X, sint16),
 		RCT2_GLOBAL(RCT2_ADDRESS_COMMAND_MAP_Y, sint16),
 		RCT2_GLOBAL(RCT2_ADDRESS_COMMAND_MAP_Z, uint16));
@@ -392,7 +391,7 @@ static void window_maze_construction_entrance_tooldown(int x, int y, rct_window*
 }
 
 /**
- * 
+ *
  *  rct2: 0x006CD65D
  */
 static void window_maze_construction_tooldown(rct_window* w, int widgetIndex, int x, int y)
@@ -431,13 +430,13 @@ static void window_maze_construction_paint(rct_window *w, rct_drawpixelinfo *dpi
 }
 
 /**
- * 
+ *
  * rct2: 0x006CD887
  */
 void window_maze_construction_update_pressed_widgets()
 {
 	rct_window *w;
-	
+
 	w = window_find_by_class(WC_RIDE_CONSTRUCTION);
 	if (w == NULL)
 		return;
@@ -509,6 +508,6 @@ static void window_maze_construction_construct(int direction)
 	_currentTrackBeginX = x;
 	_currentTrackBeginY = y;
 	if (_rideConstructionState != 7) {
-		sound_play_panned(SOUND_PLACE_ITEM, 0x8001, x, y, z);
+		audio_play_sound_at_location(SOUND_PLACE_ITEM, x, y, z);
 	}
 }

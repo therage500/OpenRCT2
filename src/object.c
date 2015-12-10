@@ -80,7 +80,7 @@ int object_load_file(int groupIndex, const rct_object_entry *entry, int* chunkSi
 
 	// Read chunk size
 	*chunkSize = *((uint32*)installedObject_pointer);
-	char *chunk;
+	uint8 *chunk;
 
 	if (*chunkSize == 0xFFFFFFFF) {
 		chunk = rct2_malloc(0x600000);
@@ -137,7 +137,7 @@ int object_load_file(int groupIndex, const rct_object_entry *entry, int* chunkSi
 	memcpy(extended_entry, &openedEntry, sizeof(rct_object_entry));
 	extended_entry->chunk_size = *chunkSize;
 
-	RCT2_GLOBAL(RCT2_ADDRESS_CURR_OBJECT_CHUNK_POINTER, char*) = chunk;
+	RCT2_GLOBAL(RCT2_ADDRESS_CURR_OBJECT_CHUNK_POINTER, uint8*) = chunk;
 
 	if (RCT2_GLOBAL(0x9ADAFD, uint8) != 0)
 		object_paint(objectType, 0, groupIndex, objectType, 0, (int)chunk, 0, 0);
@@ -347,7 +347,7 @@ void object_unload(rct_object_entry *entry)
 	object_paint(object_type, 1, 0, 0, 0, (int)chunk, 0, 0);
 
 	rct2_free(chunk);
-	object_entry_groups[object_type].chunks[object_index] = (char*)-1;
+	object_entry_groups[object_type].chunks[object_index] = (uint8*)-1;
 }
 
 int object_entry_compare(const rct_object_entry *a, const rct_object_entry *b)
@@ -375,7 +375,7 @@ int object_entry_compare(const rct_object_entry *a, const rct_object_entry *b)
 	return 1;
 }
 
-int object_calculate_checksum(const rct_object_entry *entry, const char *data, int dataLength)
+int object_calculate_checksum(const rct_object_entry *entry, const uint8 *data, int dataLength)
 {
 	int i;
 	const char *eee = (char*)entry;
@@ -458,7 +458,7 @@ int paint_ride_entry(int flags, int ebx, int ecx, int edx, rct_drawpixelinfo* dp
 			chunk += 0x60;
 		}
 
-		sint8* peep_loading_positions = chunk;
+		sint8* peep_loading_positions = (sint8 *)chunk;
 		// Peep loading positions variable size
 		// 4 different vehicle subtypes are available
 		for (int i = 0; i < 4; ++i){
@@ -480,20 +480,18 @@ int paint_ride_entry(int flags, int ebx, int ecx, int edx, rct_drawpixelinfo* dp
 		for (int i = 0; i < 4; ++i){
 			rct_ride_type_vehicle* rideVehicleEntry = &ride_type->vehicles[i];
 
-			if (rideVehicleEntry->var_0C & 1){
+			if (rideVehicleEntry->sprite_flags & VEHICLE_SPRITE_FLAG_FLAT) {
 				int al = 1;
-				if (rideVehicleEntry->var_14 & 2)
-				{
+				if (rideVehicleEntry->var_14 & 2) {
 					al = 13;
-					if ((rideVehicleEntry->var_14 & 0x820) != 0x820)
-					{
+					if ((rideVehicleEntry->var_14 & 0x820) != 0x820) {
 						al = 7;
-						if (!(rideVehicleEntry->var_14 & 0x20))
-						{
-							if (!(rideVehicleEntry->var_14 & 0x800))
-							{
+						if (!(rideVehicleEntry->var_14 & 0x20)) {
+							if (!(rideVehicleEntry->var_14 & 0x800)) {
 								al = 5;
-								if (rideVehicleEntry->var_14 & 0x200) al = 3;
+								if (rideVehicleEntry->var_14 & 0x200) {
+									al = 3;
+								}
 							}
 						}
 					}
@@ -514,7 +512,7 @@ int paint_ride_entry(int flags, int ebx, int ecx, int edx, rct_drawpixelinfo* dp
 						}
 					}
 				}
-				if (rideVehicleEntry->var_12 & 0x1000) al = rideVehicleEntry->var_60;
+				if (rideVehicleEntry->var_12 & 0x1000) al = rideVehicleEntry->special_frames;
 				rideVehicleEntry->var_02 = al;
 				// 0x6DE946
 
@@ -522,16 +520,16 @@ int paint_ride_entry(int flags, int ebx, int ecx, int edx, rct_drawpixelinfo* dp
 				rideVehicleEntry->base_image_id = cur_vehicle_images_offset;
 				int image_index = rideVehicleEntry->base_image_id;
 
-				if (rideVehicleEntry->var_5D != 4){
+				if (rideVehicleEntry->car_visual != VEHICLE_VISUAL_RIVER_RAPIDS) {
 					int b = rideVehicleEntry->var_16 * 32;
 
 					if (rideVehicleEntry->var_12 & 0x800) b /= 2;
-					if (rideVehicleEntry->var_0C & 0x8000) b /= 8;
+					if (rideVehicleEntry->sprite_flags & VEHICLE_SPRITE_FLAG_15) b /= 8;
 
 					image_index += b;
 
 					// Incline 25
-					if (rideVehicleEntry->var_0C & 0x2){
+					if (rideVehicleEntry->sprite_flags & VEHICLE_SPRITE_FLAG_GENTLE_SLOPES) {
 						rideVehicleEntry->var_20 = image_index;
 						b = rideVehicleEntry->var_16 * 72;
 						if (rideVehicleEntry->var_12 & 0x4000)
@@ -541,81 +539,81 @@ int paint_ride_entry(int flags, int ebx, int ecx, int edx, rct_drawpixelinfo* dp
 					}
 
 					// Incline 60
-					if (rideVehicleEntry->var_0C & 0x4){
+					if (rideVehicleEntry->sprite_flags & VEHICLE_SPRITE_FLAG_STEEP_SLOPES) {
 						rideVehicleEntry->var_24 = image_index;
 						b = rideVehicleEntry->var_16 * 80;
 						image_index += b;
 					}
 					// Verticle
-					if (rideVehicleEntry->var_0C & 0x8){
+					if (rideVehicleEntry->sprite_flags & VEHICLE_SPRITE_FLAG_VERTICAL_SLOPES) {
 						rideVehicleEntry->var_28 = image_index;
 						b = rideVehicleEntry->var_16 * 116;
 						image_index += b;
 					}
 					// Unknown
-					if (rideVehicleEntry->var_0C & 0x10){
+					if (rideVehicleEntry->sprite_flags & VEHICLE_SPRITE_FLAG_DIAGONAL_SLOPES) {
 						rideVehicleEntry->var_2C = image_index;
 						b = rideVehicleEntry->var_16 * 24;
 						image_index += b;
 					}
 
 					// Bank
-					if (rideVehicleEntry->var_0C & 0x20){
+					if (rideVehicleEntry->sprite_flags & VEHICLE_SPRITE_FLAG_FLAT_BANKED) {
 						rideVehicleEntry->var_30 = image_index;
 						b = rideVehicleEntry->var_16 * 80;
 						image_index += b;
 					}
 
-					if (rideVehicleEntry->var_0C & 0x40){
+					if (rideVehicleEntry->sprite_flags & VEHICLE_SPRITE_FLAG_INLINE_TWISTS) {
 						rideVehicleEntry->var_34 = image_index;
 						b = rideVehicleEntry->var_16 * 40;
 						image_index += b;
 					}
 
 					// Track half? Up/Down
-					if (rideVehicleEntry->var_0C & 0x80){
+					if (rideVehicleEntry->sprite_flags & VEHICLE_SPRITE_FLAG_FLAT_TO_GENTLE_SLOPE_BANKED_TRANSITIONS) {
 						rideVehicleEntry->var_38 = image_index;
 						b = rideVehicleEntry->var_16 * 128;
 						image_index += b;
 					}
 					// Unknown
-					if (rideVehicleEntry->var_0C & 0x100){
+					if (rideVehicleEntry->sprite_flags & VEHICLE_SPRITE_FLAG_DIAGONAL_GENTLE_SLOPE_BANKED_TRANSITIONS) {
 						rideVehicleEntry->var_3C = image_index;
 						b = rideVehicleEntry->var_16 * 16;
 						image_index += b;
 					}
 					// Unknown
-					if (rideVehicleEntry->var_0C & 0x200){
+					if (rideVehicleEntry->sprite_flags & VEHICLE_SPRITE_FLAG_GENTLE_SLOPE_BANKED_TRANSITIONS) {
 						rideVehicleEntry->var_40 = image_index;
 						b = rideVehicleEntry->var_16 * 16;
 						image_index += b;
 					}
 
-					if (rideVehicleEntry->var_0C & 0x400){
+					if (rideVehicleEntry->sprite_flags & VEHICLE_SPRITE_FLAG_GENTLE_SLOPE_BANKED_TURNS) {
 						rideVehicleEntry->var_44 = image_index;
 						b = rideVehicleEntry->var_16 * 128;
 						image_index += b;
 					}
 
-					if (rideVehicleEntry->var_0C & 0x800){
+					if (rideVehicleEntry->sprite_flags & VEHICLE_SPRITE_FLAG_FLAT_TO_GENTLE_SLOPE_WHILE_BANKED_TRANSITIONS) {
 						rideVehicleEntry->var_48 = image_index;
 						b = rideVehicleEntry->var_16 * 16;
 						image_index += b;
 					}
 
-					if (rideVehicleEntry->var_0C & 0x1000){
+					if (rideVehicleEntry->sprite_flags & VEHICLE_SPRITE_FLAG_CORKSCREWS) {
 						rideVehicleEntry->var_4C = image_index;
 						b = rideVehicleEntry->var_16 * 80;
 						image_index += b;
 					}
 					// Unknown
-					if (rideVehicleEntry->var_0C & 0x2000){
+					if (rideVehicleEntry->sprite_flags & VEHICLE_SPRITE_FLAG_RESTRAINT_ANIMATION) {
 						rideVehicleEntry->var_1C = image_index;
 						b = rideVehicleEntry->var_16 * 12;
 						image_index += b;
 					}
 
-					if (rideVehicleEntry->var_0C & 0x4000){
+					if (rideVehicleEntry->sprite_flags & VEHICLE_SPRITE_FLAG_14) {
 						// Same offset as above???
 						rideVehicleEntry->var_4C = image_index;
 						b = rideVehicleEntry->var_16 * 32;
@@ -642,8 +640,8 @@ int paint_ride_entry(int flags, int ebx, int ecx, int edx, rct_drawpixelinfo* dp
 					set_vehicle_type_image_max_sizes(rideVehicleEntry, num_images);
 				}
 
-				uint8 no_positions = *peep_loading_positions++;
-				if (no_positions == 0xFF)
+				sint8 no_positions = *peep_loading_positions++;
+				if (no_positions == -1)
 				{
 					// The no_positions is 16 bit skip over
 					peep_loading_positions += 2;
@@ -715,9 +713,9 @@ int paint_ride_entry(int flags, int ebx, int ecx, int edx, rct_drawpixelinfo* dp
 			rideVehicleEntry->var_16 = 0;
 
 			if (!(rideVehicleEntry->var_12 & 0x400)){
-				rideVehicleEntry->var_0E = 0;
-				rideVehicleEntry->var_0F = 0;
-				rideVehicleEntry->var_10 = 0;
+				rideVehicleEntry->sprite_width = 0;
+				rideVehicleEntry->sprite_height_negative = 0;
+				rideVehicleEntry->sprite_height_positive = 0;
 			}
 			rideVehicleEntry->var_02 = 0;
 			rideVehicleEntry->var_03 = 0;
@@ -1528,7 +1526,7 @@ int object_get_scenario_text(rct_object_entry *entry)
 			// Read chunk
 			int chunkSize = *((uint32*)pos);
 
-			char *chunk;
+			uint8 *chunk;
 			if (chunkSize == 0xFFFFFFFF) {
 				chunk = malloc(0x600000);
 				chunkSize = sawyercoding_read_chunk(rw, chunk);
@@ -1649,5 +1647,5 @@ char *object_get_name(rct_object_entry *entry)
 	// Skip no of images
 	pos += 4;
 
-	return pos;
+	return (char *)pos;
 }

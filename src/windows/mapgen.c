@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -25,6 +25,7 @@
 #include "../interface/viewport.h"
 #include "../interface/window.h"
 #include "../sprites.h"
+#include "../util/util.h"
 #include "../world/mapgen.h"
 #include "../world/scenery.h"
 #include "dropdown.h"
@@ -168,7 +169,7 @@ static rct_widget window_mapgen_simplex_widgets[] = {
 
 	{ WWT_FLATBTN,			1,	225,	271,	68,		103,	0xFFFFFFFF,				STR_CHANGE_BASE_LAND_TIP },
 	{ WWT_FLATBTN,			1,	225,	271,	104,	139,	0xFFFFFFFF,				STR_CHANGE_VERTICAL_LAND_TIP },
-	
+
 	{ WIDGETS_END },
 };
 
@@ -289,7 +290,7 @@ static rct_window_event_list window_mapgen_simplex_events = {
 	NULL,
 	NULL,
 	NULL,
-	NULL,
+	window_mapgen_textinput,
 	NULL,
 	NULL,
 	NULL,
@@ -392,8 +393,10 @@ static uint32 window_mapgen_page_hold_down_widgets[] = {
 
 const int window_mapgen_tab_animation_loops[] = { 16, 16 };
 
-#define MAPSIZE_MIN	16
-#define MAPSIZE_MAX 256
+#define MINIMUM_MAP_SIZE_TECHNICAL 15
+#define MAXIMUM_MAP_SIZE_TECHNICAL 256
+#define MINIMUM_MAP_SIZE_PRACTICAL MINIMUM_MAP_SIZE_TECHNICAL-2
+#define MAXIMUM_MAP_SIZE_PRACTICAL MAXIMUM_MAP_SIZE_TECHNICAL-2
 #define BASESIZE_MIN 0
 #define BASESIZE_MAX 60
 #define WATERLEVEL_MIN 0
@@ -485,9 +488,10 @@ static void window_mapgen_base_mouseup(rct_window *w, int widgetIndex)
 		gfx_invalidate_screen();
 		break;
 	case WIDX_MAP_SIZE:
-		((uint16*)TextInputDescriptionArgs)[0] = MAPSIZE_MIN;
-		((uint16*)TextInputDescriptionArgs)[1] = MAPSIZE_MAX;
-		window_text_input_open(w, WIDX_MAP_SIZE, 5130, 5131, 5182, _mapSize, 4);
+		((uint16*)TextInputDescriptionArgs)[0] = MINIMUM_MAP_SIZE_PRACTICAL;
+		((uint16*)TextInputDescriptionArgs)[1] = MAXIMUM_MAP_SIZE_PRACTICAL;
+		// Practical map size is 2 lower than the technical map size
+		window_text_input_open(w, WIDX_MAP_SIZE, 5130, 5131, 5182, _mapSize - 2, 4);
 		break;
 	case WIDX_BASE_HEIGHT:
 		((uint16*)TextInputDescriptionArgs)[0] = (BASESIZE_MIN - 12) / 2;
@@ -508,11 +512,11 @@ static void window_mapgen_base_mousedown(int widgetIndex, rct_window *w, rct_wid
 
 	switch (widgetIndex) {
 	case WIDX_MAP_SIZE_UP:
-		_mapSize = min(_mapSize + 1, MAPSIZE_MAX);
+		_mapSize = min(_mapSize + 1, MAXIMUM_MAP_SIZE_TECHNICAL);
 		window_invalidate(w);
 		break;
 	case WIDX_MAP_SIZE_DOWN:
-		_mapSize = max(_mapSize - 1, MAPSIZE_MIN);
+		_mapSize = max(_mapSize - 1, MINIMUM_MAP_SIZE_TECHNICAL);
 		window_invalidate(w);
 		break;
 	case WIDX_BASE_HEIGHT_UP:
@@ -536,7 +540,7 @@ static void window_mapgen_base_mousedown(int widgetIndex, rct_window *w, rct_wid
 			gDropdownItemsFormat[i] = -1;
 			gDropdownItemsArgs[i] = SPR_FLOOR_TEXTURE_GRASS + window_land_floor_texture_order[i];
 			if (window_land_floor_texture_order[i] == _floorTexture)
-				RCT2_GLOBAL(0x009DEBA2, sint16) = i;
+				gDropdownHighlightedIndex = i;
 		}
 		window_dropdown_show_image(
 			w->x + widget->left, w->y + widget->top,
@@ -553,7 +557,7 @@ static void window_mapgen_base_mousedown(int widgetIndex, rct_window *w, rct_wid
 			gDropdownItemsFormat[i] = -1;
 			gDropdownItemsArgs[i] = SPR_WALL_TEXTURE_ROCK + window_land_wall_texture_order[i];
 			if (window_land_wall_texture_order[i] == _wallTexture)
-				RCT2_GLOBAL(0x009DEBA2, sint16) = i;
+				gDropdownHighlightedIndex = i;
 		}
 		window_dropdown_show_image(
 			w->x + widget->left, w->y + widget->top,
@@ -575,7 +579,7 @@ static void window_mapgen_base_dropdown(rct_window *w, int widgetIndex, int drop
 	switch (widgetIndex) {
 	case WIDX_FLOOR_TEXTURE:
 		if (dropdownIndex == -1)
-			dropdownIndex = RCT2_GLOBAL(0x009DEBA2, sint16);
+			dropdownIndex = gDropdownHighlightedIndex;
 
 		type = (dropdownIndex == -1) ?
 			_floorTexture :
@@ -591,7 +595,7 @@ static void window_mapgen_base_dropdown(rct_window *w, int widgetIndex, int drop
 		break;
 	case WIDX_WALL_TEXTURE:
 		if (dropdownIndex == -1)
-			dropdownIndex = RCT2_GLOBAL(0x009DEBA2, sint16);
+			dropdownIndex = gDropdownHighlightedIndex;
 
 		type = (dropdownIndex == -1) ?
 			_wallTexture :
@@ -632,7 +636,10 @@ static void window_mapgen_textinput(rct_window *w, int widgetIndex, char *text)
 
 	switch (widgetIndex) {
 	case WIDX_MAP_SIZE:
-		_mapSize = clamp(MAPSIZE_MIN, value, MAPSIZE_MAX);
+	case WIDX_SIMPLEX_MAP_SIZE:
+		// The practical size is 2 lower than the technical size
+		value += 2;
+		_mapSize = clamp(MINIMUM_MAP_SIZE_TECHNICAL, value, MAXIMUM_MAP_SIZE_TECHNICAL);
 		break;
 	case WIDX_BASE_HEIGHT:
 		_baseHeight = clamp(BASESIZE_MIN, (value * 2) + 12, BASESIZE_MAX);
@@ -674,7 +681,8 @@ static void window_mapgen_base_paint(rct_window *w, rct_drawpixelinfo *dpi)
 	gfx_draw_string_left(dpi, 2692, 0, 0, w->x + 4, w->y + w->widgets[WIDX_WATER_LEVEL].top + 1);
 	gfx_draw_string_left(dpi, 2693, 0, 0, w->x + 4, w->y + w->widgets[WIDX_FLOOR_TEXTURE].top + 1);
 
-	uint16 mapSizeArgs[2] = { _mapSize, _mapSize };
+	// The practical map size is 2 lower than the technical map size
+	uint16 mapSizeArgs[2] = { _mapSize - 2, _mapSize -2 };
 	gfx_draw_string_left(dpi, 839, mapSizeArgs, w->colours[1], w->x + w->widgets[WIDX_MAP_SIZE].left + 1, w->y + w->widgets[WIDX_MAP_SIZE].top + 1);
 
 	arg = (_baseHeight - 12) / 2;
@@ -709,8 +717,8 @@ static void window_mapgen_random_mouseup(rct_window *w, int widgetIndex)
 		mapgenSettings.wall = _randomTerrrain ? -1 : _wallTexture;
 		mapgenSettings.trees = _placeTrees;
 
-		mapgenSettings.simplex_low = rand() % 4;
-		mapgenSettings.simplex_high = 12 + (rand() % (32 - 12));
+		mapgenSettings.simplex_low = util_rand() % 4;
+		mapgenSettings.simplex_high = 12 + (util_rand() % (32 - 12));
 		mapgenSettings.simplex_base_freq = 1.75f;
 		mapgenSettings.simplex_octaves = 6;
 
@@ -781,6 +789,12 @@ static void window_mapgen_simplex_mouseup(rct_window *w, int widgetIndex)
 	case WIDX_TAB_3:
 		window_mapgen_set_page(w, widgetIndex - WIDX_TAB_1);
 		break;
+	case WIDX_SIMPLEX_MAP_SIZE:
+		((uint16*)TextInputDescriptionArgs)[0] = MINIMUM_MAP_SIZE_PRACTICAL;
+		((uint16*)TextInputDescriptionArgs)[1] = MAXIMUM_MAP_SIZE_PRACTICAL;
+		// Practical map size is 2 lower than the technical map size
+		window_text_input_open(w, WIDX_SIMPLEX_MAP_SIZE, 5130, 5131, 5182, _mapSize - 2, 4);
+		break;
 	case WIDX_GENERATE:
 		mapgenSettings.mapSize = _mapSize;
 
@@ -839,11 +853,11 @@ static void window_mapgen_simplex_mousedown(int widgetIndex, rct_window *w, rct_
 		window_invalidate(w);
 		break;
 	case WIDX_SIMPLEX_MAP_SIZE_UP:
-		_mapSize = min(_mapSize + 1, 256);
+		_mapSize = min(_mapSize + 1, MAXIMUM_MAP_SIZE_TECHNICAL);
 		window_invalidate(w);
 		break;
 	case WIDX_SIMPLEX_MAP_SIZE_DOWN:
-		_mapSize = max(_mapSize - 1, 16);
+		_mapSize = max(_mapSize - 1, MINIMUM_MAP_SIZE_TECHNICAL);
 		window_invalidate(w);
 		break;
 	case WIDX_SIMPLEX_WATER_LEVEL_UP:
@@ -859,7 +873,7 @@ static void window_mapgen_simplex_mousedown(int widgetIndex, rct_window *w, rct_
 			gDropdownItemsFormat[i] = -1;
 			gDropdownItemsArgs[i] = SPR_FLOOR_TEXTURE_GRASS + window_land_floor_texture_order[i];
 			if (window_land_floor_texture_order[i] == _floorTexture)
-				RCT2_GLOBAL(0x009DEBA2, sint16) = i;
+				gDropdownHighlightedIndex = i;
 		}
 		window_dropdown_show_image(
 			w->x + widget->left, w->y + widget->top,
@@ -876,7 +890,7 @@ static void window_mapgen_simplex_mousedown(int widgetIndex, rct_window *w, rct_
 			gDropdownItemsFormat[i] = -1;
 			gDropdownItemsArgs[i] = SPR_WALL_TEXTURE_ROCK + window_land_wall_texture_order[i];
 			if (window_land_wall_texture_order[i] == _wallTexture)
-				RCT2_GLOBAL(0x009DEBA2, sint16) = i;
+				gDropdownHighlightedIndex = i;
 		}
 		window_dropdown_show_image(
 			w->x + widget->left, w->y + widget->top,
@@ -898,7 +912,7 @@ static void window_mapgen_simplex_dropdown(rct_window *w, int widgetIndex, int d
 	switch (widgetIndex) {
 	case WIDX_SIMPLEX_FLOOR_TEXTURE:
 		if (dropdownIndex == -1)
-			dropdownIndex = RCT2_GLOBAL(0x009DEBA2, sint16);
+			dropdownIndex = gDropdownHighlightedIndex;
 
 		type = (dropdownIndex == -1) ?
 		_floorTexture :
@@ -915,7 +929,7 @@ static void window_mapgen_simplex_dropdown(rct_window *w, int widgetIndex, int d
 		break;
 	case WIDX_SIMPLEX_WALL_TEXTURE:
 		if (dropdownIndex == -1)
-			dropdownIndex = RCT2_GLOBAL(0x009DEBA2, sint16);
+			dropdownIndex = gDropdownHighlightedIndex;
 
 		type = (dropdownIndex == -1) ?
 		_wallTexture :
@@ -976,9 +990,10 @@ static void window_mapgen_simplex_paint(rct_window *w, rct_drawpixelinfo *dpi)
 	gfx_draw_string_left(dpi, 3311, &_simplex_base_freq, w->colours[1], w->x + w->widgets[WIDX_SIMPLEX_BASE_FREQ].left + 1, w->y + w->widgets[WIDX_SIMPLEX_BASE_FREQ].top + 1);
 	gfx_draw_string_left(dpi, 1737, &_simplex_octaves, w->colours[1], w->x + w->widgets[WIDX_SIMPLEX_OCTAVES].left + 1, w->y + w->widgets[WIDX_SIMPLEX_OCTAVES].top + 1);
 
-	uint16 mapSizeArgs[2] = { _mapSize, _mapSize };
+	// The practical map size is 2 lower than the technical map size
+	uint16 mapSizeArgs[2] = { _mapSize - 2, _mapSize - 2 };
 	gfx_draw_string_left(dpi, 839, mapSizeArgs, w->colours[1], w->x + w->widgets[WIDX_SIMPLEX_MAP_SIZE].left + 1, w->y + w->widgets[WIDX_SIMPLEX_MAP_SIZE].top + 1);
-	
+
 	arg = (_waterLevel - 12) / 2;
 	gfx_draw_string_left(dpi, 1737, &arg, w->colours[1], w->x + w->widgets[WIDX_SIMPLEX_WATER_LEVEL].left + 1, w->y + w->widgets[WIDX_SIMPLEX_WATER_LEVEL].top + 1);
 }

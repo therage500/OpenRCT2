@@ -1,9 +1,9 @@
 /*****************************************************************************
  * Copyright (c) 2014 Ted John
  * OpenRCT2, an open source clone of Roller Coaster Tycoon 2.
- * 
+ *
  * This file is part of OpenRCT2.
- * 
+ *
  * OpenRCT2 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -18,19 +18,38 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#ifdef __APPLE__
+#if defined(__APPLE__) && defined(__MACH__)
 
-/**
- * OSX entry point to OpenRCT2.
- */
-// int main(char *argv[], int argc)
-// {
-//     return 0;
-// }
+#include "platform.h"
+#include "../util/util.h"
 
-char platform_get_path_separator()
+#include <mach-o/dyld.h>
+
+bool platform_check_steam_overlay_attached() {
+	STUB();
+	return false;
+}
+
+void platform_get_exe_path(utf8 *outPath)
 {
-	return '/';
+	char exePath[MAX_PATH];
+	uint32_t size = MAX_PATH;
+	int result = _NSGetExecutablePath(exePath, &size);
+	if (result != 0) {
+		log_fatal("failed to get path");
+	}
+	exePath[MAX_PATH - 1] = '\0';
+	char *exeDelimiter = strrchr(exePath, platform_get_path_separator());
+	if (exeDelimiter == NULL)
+	{
+		log_error("should never happen here");
+		outPath[0] = '\0';
+		return;
+	}
+	int exeDelimiterIndex = (int)(exeDelimiter - exePath);
+
+	safe_strncpy(outPath, exePath, exeDelimiterIndex + 1);
+	outPath[exeDelimiterIndex] = '\0';
 }
 
 #endif

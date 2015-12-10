@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -31,17 +31,20 @@
 #include "../audio/mixer.h"
 #include "../config.h"
 #include "../drawing/drawing.h"
+#include "../interface/themes.h"
+#include "../interface/title_sequences.h"
 #include "../interface/viewport.h"
 #include "../interface/widget.h"
 #include "../interface/window.h"
+#include "../localisation/currency.h"
+#include "../localisation/date.h"
 #include "../localisation/localisation.h"
 #include "../platform/platform.h"
 #include "../sprites.h"
+#include "../title.h"
 #include "dropdown.h"
 #include "error.h"
-#include "../interface/themes.h"
-#include "../interface/title_sequences.h"
-#include "../title.h"
+#include "../util/util.h"
 
 enum WINDOW_OPTIONS_PAGE {
 	WINDOW_OPTIONS_PAGE_DISPLAY,
@@ -77,7 +80,12 @@ enum WINDOW_OPTIONS_WIDGET_IDX {
 	WIDX_FULLSCREEN_DROPDOWN,
 	WIDX_HARDWARE_DISPLAY_CHECKBOX,
 	WIDX_UNCAP_FPS_CHECKBOX,
+	WIDX_SHOW_FPS_CHECKBOX,
 	WIDX_MINIMIZE_FOCUS_LOSS,
+	WIDX_STEAM_OVERLAY_PAUSE,
+	WIDX_SCALE,
+	WIDX_SCALE_UP,
+	WIDX_SCALE_DOWN,
 	WIDX_RENDERING_GROUP,
 	WIDX_TILE_SMOOTHING_CHECKBOX,
 	WIDX_GRIDLINES_CHECKBOX,
@@ -85,7 +93,7 @@ enum WINDOW_OPTIONS_WIDGET_IDX {
 	WIDX_CONSTRUCTION_MARKER_DROPDOWN,
 	WIDX_DAY_NIGHT_CHECKBOX,
 	WIDX_UPPER_CASE_BANNERS_CHECKBOX,
-	
+
 	// Culture / Units
 	WIDX_LANGUAGE = WIDX_PAGE_START,
 	WIDX_LANGUAGE_DROPDOWN,
@@ -140,6 +148,7 @@ enum WINDOW_OPTIONS_WIDGET_IDX {
 	WIDX_TITLE_SEQUENCE_DROPDOWN,
 	WIDX_TITLE_SEQUENCE_BUTTON,
 	WIDX_ALLOW_LOADING_WITH_INCORRECT_CHECKSUM,
+	WIDX_STAY_CONNECTED_AFTER_DESYNC,
 
 	// Twitch
 	WIDX_CHANNEL_BUTTON = WIDX_PAGE_START,
@@ -151,7 +160,7 @@ enum WINDOW_OPTIONS_WIDGET_IDX {
 };
 
 #define WW 			310
-#define WH 			265
+#define WH 			280
 
 #define MAIN_OPTIONS_WIDGETS \
 	{ WWT_FRAME,			0,	0,		WW-1,	0,		WH-1,	STR_NONE,			STR_NONE }, \
@@ -167,22 +176,27 @@ enum WINDOW_OPTIONS_WIDGET_IDX {
 
 static rct_widget window_options_display_widgets[] = {
 	MAIN_OPTIONS_WIDGETS,
-	{ WWT_GROUPBOX,			1,	5,      304,	53,		145,	STR_HARDWARE_GROUP,		STR_NONE },					// Hardware group
+	{ WWT_GROUPBOX,			1,	5,      304,	53,		175,	STR_HARDWARE_GROUP,		STR_NONE },					// Hardware group
 	{ WWT_DROPDOWN,			1,	155,	299,	68,		79,		STR_RESOLUTION_X_BY_Y,	STR_NONE },					// resolution
 	{ WWT_DROPDOWN_BUTTON,	1,	288,	298,	69,		78,		STR_DROPDOWN_GLYPH,		STR_NONE },
 	{ WWT_DROPDOWN,			1,	155,	299,	83,		94,		871,					STR_NONE },					// fullscreen
 	{ WWT_DROPDOWN_BUTTON,	1,	288,	298,	84,		93,		STR_DROPDOWN_GLYPH,		STR_NONE },
 	{ WWT_CHECKBOX,			1,	10,		290,	99,		110,	STR_HARDWARE_DISPLAY,	STR_NONE },					// hardware display
 	{ WWT_CHECKBOX,			1,	10,		290,	114,	125,	STR_UNCAP_FPS,			STR_NONE },					// uncap fps
+	{ WWT_CHECKBOX,			1,	155,	299,	114,	125,	STR_SHOW_FPS,			STR_NONE },					// show fps
 	{ WWT_CHECKBOX,			1,	10,		290,	129,	140,	STR_MININISE_FULL_SCREEN_ON_FOCUS_LOSS,	STR_NONE },	// minimise fullscreen focus loss
+	{ WWT_CHECKBOX,			1,	10,		290,	144,	155,	STR_STEAM_OVERLAY_PAUSE,	STR_NONE },				// minimise fullscreen focus loss
+	{ WWT_SPINNER,			1,	155,	299,	159,	170,	STR_NONE,				STR_NONE },					// scale spinner
+	{ WWT_DROPDOWN_BUTTON,	1,	288,	298,	160,	164,	STR_NUMERIC_UP,			STR_NONE },					// scale spinner up
+	{ WWT_DROPDOWN_BUTTON,	1,	288,	298,	165,	169,	STR_NUMERIC_DOWN,		STR_NONE },					// scale spinner down
 
-	{ WWT_GROUPBOX,			1,	5,      304,	149,	240,	STR_RENDERING_GROUP,	STR_NONE },					// Rendering group
-	{ WWT_CHECKBOX,			1,	10,		290,	164,	175,	STR_TILE_SMOOTHING, 	STR_TILE_SMOOTHING_TIP },	// landscape smoothing
-	{ WWT_CHECKBOX,			1,	10,		290,	179,	190,	STR_GRIDLINES,			STR_GRIDLINES_TIP },		// gridlines
-	{ WWT_DROPDOWN,			1,	155,	299,	193,	204,	STR_NONE,				STR_NONE },					// construction marker
-	{ WWT_DROPDOWN_BUTTON,	1,	288,	298,	194,	203,	STR_DROPDOWN_GLYPH,		STR_NONE },
-	{ WWT_CHECKBOX,			1,	10,		290,	209,	220,	STR_CYCLE_DAY_NIGHT,	STR_NONE },					// cycle day-night
-	{ WWT_CHECKBOX,			1,	10,		290,	224,	235,	STR_UPPER_CASE_BANNERS,	STR_NONE },					// upper case banners
+	{ WWT_GROUPBOX,			1,	5,      304,	179,	270,	STR_RENDERING_GROUP,	STR_NONE },					// Rendering group
+	{ WWT_CHECKBOX,			1,	10,		290,	194,	205,	STR_TILE_SMOOTHING, 	STR_TILE_SMOOTHING_TIP },	// landscape smoothing
+	{ WWT_CHECKBOX,			1,	10,		290,	209,	220,	STR_GRIDLINES,			STR_GRIDLINES_TIP },		// gridlines
+	{ WWT_DROPDOWN,			1,	155,	299,	224,	234,	STR_NONE,				STR_NONE },					// construction marker
+	{ WWT_DROPDOWN_BUTTON,	1,	288,	298,	225,	233,	STR_DROPDOWN_GLYPH,		STR_NONE },
+	{ WWT_CHECKBOX,			1,	10,		290,	239,	250,	STR_CYCLE_DAY_NIGHT,	STR_NONE },					// cycle day-night
+	{ WWT_CHECKBOX,			1,	10,		290,	254,	265,	STR_UPPER_CASE_BANNERS,	STR_NONE },					// upper case banners
 	{ WIDGETS_END },
 };
 
@@ -195,7 +209,7 @@ static rct_widget window_options_culture_widgets[] = {
 	{ WWT_DROPDOWN,			1,	155,	299,	83,		94,		872,					STR_NONE },	// distance
 	{ WWT_DROPDOWN_BUTTON,	1,	288,	298,	84,		93,		STR_DROPDOWN_GLYPH,		STR_NONE },
 	{ WWT_DROPDOWN,			1,	155,	299,	98,		110,	875,					STR_NONE },	// temperature
-	{ WWT_DROPDOWN_BUTTON,	1,	288,	298,	99,		108,	STR_DROPDOWN_GLYPH,		STR_NONE }, 
+	{ WWT_DROPDOWN_BUTTON,	1,	288,	298,	99,		108,	STR_DROPDOWN_GLYPH,		STR_NONE },
 	{ WWT_DROPDOWN,			1,	155,	299,	113,	124,	868,					STR_NONE },	// height labels
 	{ WWT_DROPDOWN_BUTTON,	1,	288,	298,	114,	123,	STR_DROPDOWN_GLYPH,		STR_NONE },
 	{ WWT_DROPDOWN,			1,	155,	299,	128,	139,	STR_NONE,				STR_NONE },	// date format
@@ -253,12 +267,13 @@ static rct_widget window_options_misc_widgets[] = {
 	{ WWT_DROPDOWN_BUTTON,	1,	288,	298,	174,	183,	STR_DROPDOWN_GLYPH,							STR_NONE },
 	{ WWT_DROPDOWN_BUTTON,	1,	26,		185,	189,	200,	STR_EDIT_TITLE_SEQUENCES_BUTTON,			STR_NONE },											// Title sequences button
 	{ WWT_CHECKBOX,			2,	10,		299,	204,	215,	STR_ALLOW_LOADING_WITH_INCORRECT_CHECKSUM,	STR_ALLOW_LOADING_WITH_INCORRECT_CHECKSUM_TIP },	// Allow loading with incorrect checksum
+	{ WWT_CHECKBOX,			2,	10,		299,	219,	230,	STR_STAY_CONNECTED_AFTER_DESYNC,			STR_NONE },											// Do not disconnect after the client desynchronises with the server
 	{ WIDGETS_END },
 };
 
 static rct_widget window_options_twitch_widgets[] = {
 	MAIN_OPTIONS_WIDGETS,
-	{ WWT_DROPDOWN_BUTTON,	2,	10,		299,	54,		65,		STR_TWITCH_NAME,			STR_NONE },							// Twitch channel name 
+	{ WWT_DROPDOWN_BUTTON,	2,	10,		299,	54,		65,		STR_TWITCH_NAME,			STR_NONE },							// Twitch channel name
 	{ WWT_CHECKBOX,			2,	10,		299,	69,		80,		STR_TWITCH_PEEP_FOLLOWERS,	STR_TWITCH_PEEP_FOLLOWERS_TIP },	// Twitch name peeps by follows
 	{ WWT_CHECKBOX,			2,	10,		299,	84,		95,		STR_TWITCH_FOLLOWERS_TRACK,	STR_TWITCH_FOLLOWERS_TRACK_TIP },	// Twitch information on for follows
 	{ WWT_CHECKBOX,			2,	10,		299,	99,		110,	STR_TWITCH_PEEP_CHAT,		STR_TWITCH_PEEP_CHAT_TIP },			// Twitch name peeps by chat
@@ -353,7 +368,12 @@ static uint32 window_options_page_enabled_widgets[] = {
 	(1 << WIDX_GRIDLINES_CHECKBOX) |
 	(1 << WIDX_HARDWARE_DISPLAY_CHECKBOX) |
 	(1 << WIDX_UNCAP_FPS_CHECKBOX) |
+	(1 << WIDX_SHOW_FPS_CHECKBOX) |
 	(1 << WIDX_MINIMIZE_FOCUS_LOSS) |
+	(1 << WIDX_STEAM_OVERLAY_PAUSE) |
+	(1 << WIDX_SCALE) |
+	(1 << WIDX_SCALE_UP) |
+	(1 << WIDX_SCALE_DOWN) |
 	(1 << WIDX_CONSTRUCTION_MARKER) |
 	(1 << WIDX_CONSTRUCTION_MARKER_DROPDOWN) |
 	(1 << WIDX_DAY_NIGHT_CHECKBOX) |
@@ -406,8 +426,9 @@ static uint32 window_options_page_enabled_widgets[] = {
 	(1 << WIDX_DEBUGGING_TOOLS) |
 	(1 << WIDX_TITLE_SEQUENCE) |
 	(1 << WIDX_TITLE_SEQUENCE_DROPDOWN) |
-	(1 << WIDX_TITLE_SEQUENCE_BUTTON) | 
-	(1 << WIDX_ALLOW_LOADING_WITH_INCORRECT_CHECKSUM),
+	(1 << WIDX_TITLE_SEQUENCE_BUTTON) |
+	(1 << WIDX_ALLOW_LOADING_WITH_INCORRECT_CHECKSUM) |
+	(1 << WIDX_STAY_CONNECTED_AFTER_DESYNC),
 
 	MAIN_OPTIONS_ENABLED_WIDGETS |
 	(1 << WIDX_CHANNEL_BUTTON) |
@@ -486,7 +507,16 @@ static void window_options_mouseup(rct_window *w, int widgetIndex)
 			break;
 		case WIDX_HARDWARE_DISPLAY_CHECKBOX:
 			gConfigGeneral.hardware_display ^= 1;
+#ifdef _WIN32
+			// Windows is apparently able to switch to hardware rendering on the fly although
+			// using the same window in an unaccelerated and accelerated context is unsupported by SDL2
+			gHardwareDisplay = gConfigGeneral.hardware_display;
 			platform_refresh_video();
+#else
+			// Linux requires a restart. This could be improved in the future by recreating the window,
+			// https://github.com/OpenRCT2/OpenRCT2/issues/2015
+			window_error_open(STR_RESTART_REQUIRED, STR_NONE);
+#endif
 			config_save_default();
 			window_invalidate(w);
 			break;
@@ -495,9 +525,19 @@ static void window_options_mouseup(rct_window *w, int widgetIndex)
 			config_save_default();
 			window_invalidate(w);
 			break;
+		case WIDX_SHOW_FPS_CHECKBOX:
+			gConfigGeneral.show_fps ^= 1;
+			config_save_default();
+			window_invalidate(w);
+			break;
 		case WIDX_MINIMIZE_FOCUS_LOSS:
 			gConfigGeneral.minimize_fullscreen_focus_loss ^= 1;
 			platform_refresh_video();
+			config_save_default();
+			window_invalidate(w);
+			break;
+		case WIDX_STEAM_OVERLAY_PAUSE:
+			gConfigGeneral.steam_overlay_pause ^= 1;
 			config_save_default();
 			window_invalidate(w);
 			break;
@@ -520,14 +560,14 @@ static void window_options_mouseup(rct_window *w, int widgetIndex)
 	case WINDOW_OPTIONS_PAGE_AUDIO:
 		switch (widgetIndex) {
 		case WIDX_SOUND_CHECKBOX:
-			toggle_all_sounds();
+			audio_toggle_all_sounds();
 			config_save_default();
 			window_invalidate(w);
 			break;
 		case WIDX_MUSIC_CHECKBOX:
 			gConfigSound.ride_music = !gConfigSound.ride_music;
 			if (!gConfigSound.ride_music) {
-				stop_ride_music();
+				audio_stop_ride_music();
 			}
 			config_save_default();
 			window_invalidate(w);
@@ -634,6 +674,10 @@ static void window_options_mouseup(rct_window *w, int widgetIndex)
 			config_save_default();
 			window_invalidate(w);
 			break;
+		case WIDX_STAY_CONNECTED_AFTER_DESYNC:
+			gConfigNetwork.stay_connected = !gConfigNetwork.stay_connected;
+			config_save_default();
+			window_invalidate(w);
 		}
 		break;
 
@@ -679,7 +723,7 @@ static void window_options_mouseup(rct_window *w, int widgetIndex)
 static void window_options_mousedown(int widgetIndex, rct_window*w, rct_widget* widget)
 {
 	int num_items, i;
-	
+
 	widget = &w->widgets[widgetIndex - 1];
 
 	switch (w->page) {
@@ -706,8 +750,9 @@ static void window_options_mousedown(int widgetIndex, rct_window*w, rct_widget* 
 
 			window_options_show_dropdown(w, widget, gNumResolutions);
 
-			if (selectedResolution != -1 && selectedResolution < 32)
-				gDropdownItemsChecked = 1 << selectedResolution;
+			if (selectedResolution != -1 && selectedResolution < 32) {
+				dropdown_set_checked(selectedResolution, true);
+			}
 		}
 
 		break;
@@ -721,7 +766,7 @@ static void window_options_mousedown(int widgetIndex, rct_window*w, rct_widget* 
 
 			window_options_show_dropdown(w, widget, 3);
 
-			gDropdownItemsChecked = 1 << gConfigGeneral.fullscreen_mode;
+			dropdown_set_checked(gConfigGeneral.fullscreen_mode, true);
 			break;
 		case WIDX_CONSTRUCTION_MARKER_DROPDOWN:
 			gDropdownItemsFormat[0] = 1142;
@@ -731,7 +776,20 @@ static void window_options_mousedown(int widgetIndex, rct_window*w, rct_widget* 
 
 			window_options_show_dropdown(w, widget, 2);
 
-			gDropdownItemsChecked = 1 << gConfigGeneral.construction_marker_colour;
+			dropdown_set_checked(gConfigGeneral.construction_marker_colour, true);
+			break;
+		case WIDX_SCALE_UP:
+			gConfigGeneral.window_scale += 0.25f;
+			config_save_default();
+			gfx_invalidate_screen();
+			platform_trigger_resize();
+			break;
+		case WIDX_SCALE_DOWN:
+			gConfigGeneral.window_scale -= 0.25f;
+			gConfigGeneral.window_scale = max(0.5f, gConfigGeneral.window_scale);
+			config_save_default();
+			gfx_invalidate_screen();
+			platform_trigger_resize();
 			break;
 		}
 		break;
@@ -746,19 +804,19 @@ static void window_options_mousedown(int widgetIndex, rct_window*w, rct_widget* 
 
 			window_options_show_dropdown(w, widget, 2);
 
-			gDropdownItemsChecked = gConfigGeneral.show_height_as_units ? 1 : 2;
+			dropdown_set_checked(gConfigGeneral.show_height_as_units ? 0 : 1, true);
 			break;
 		case WIDX_CURRENCY_DROPDOWN:
-			num_items = 10;
+			num_items = CURRENCY_END;
 
 			for (i = 0; i < num_items; i++) {
 				gDropdownItemsFormat[i] = 1142;
-				gDropdownItemsArgs[i] = STR_POUNDS + i;
+				gDropdownItemsArgs[i] = CurrencyDescriptors[i].stringId;
 			}
 
 			window_options_show_dropdown(w, widget, num_items);
 
-			gDropdownItemsChecked = 1 << gConfigGeneral.currency_format;
+			dropdown_set_checked(gConfigGeneral.currency_format, true);
 			break;
 		case WIDX_DISTANCE_DROPDOWN:
 			gDropdownItemsFormat[0] = 1142;
@@ -768,7 +826,7 @@ static void window_options_mousedown(int widgetIndex, rct_window*w, rct_widget* 
 
 			window_options_show_dropdown(w, widget, 2);
 
-			gDropdownItemsChecked = 1 << gConfigGeneral.measurement_format;
+			dropdown_set_checked(gConfigGeneral.measurement_format, true);
 			break;
 		case WIDX_TEMPERATURE_DROPDOWN:
 			gDropdownItemsFormat[0] = 1142;
@@ -778,7 +836,7 @@ static void window_options_mousedown(int widgetIndex, rct_window*w, rct_widget* 
 
 			window_options_show_dropdown(w, widget, 2);
 
-			gDropdownItemsChecked = 1 << gConfigGeneral.temperature_format;
+			dropdown_set_checked(gConfigGeneral.temperature_format, true);
 			break;
 		case WIDX_LANGUAGE_DROPDOWN:
 			for (i = 1; i < LANGUAGE_COUNT; i++) {
@@ -786,15 +844,15 @@ static void window_options_mousedown(int widgetIndex, rct_window*w, rct_widget* 
 				gDropdownItemsArgs[i - 1] = (sint32)LanguagesDescriptors[i].native_name;
 			}
 			window_options_show_dropdown(w, widget, LANGUAGE_COUNT - 1);
-			gDropdownItemsChecked = 1 << (gCurrentLanguage - 1);
+			dropdown_set_checked(gCurrentLanguage - 1, true);
 			break;
 		case WIDX_DATE_FORMAT_DROPDOWN:
-			for (i = 0; i < 2; i++) {
+			for (i = 0; i < 4; i++) {
 				gDropdownItemsFormat[i] = 1142;
-				gDropdownItemsArgs[i] = 5162 + i;
+				gDropdownItemsArgs[i] = DateFormatStringIds[i];
 			}
-			window_options_show_dropdown(w, widget, 2);
-			gDropdownItemsChecked = 1 << (gConfigGeneral.date_format);
+			window_options_show_dropdown(w, widget, 4);
+			dropdown_set_checked(gConfigGeneral.date_format, true);
 			break;
 		}
 		break;
@@ -802,7 +860,7 @@ static void window_options_mousedown(int widgetIndex, rct_window*w, rct_widget* 
 	case WINDOW_OPTIONS_PAGE_AUDIO:
 		switch (widgetIndex) {
 		case WIDX_SOUND_DROPDOWN:
-			audio_get_devices();
+			audio_populate_devices();
 
 			// populate the list with the sound devices
 			for (i = 0; i < gAudioDeviceCount; i++) {
@@ -812,7 +870,7 @@ static void window_options_mousedown(int widgetIndex, rct_window*w, rct_widget* 
 
 			window_options_show_dropdown(w, widget, gAudioDeviceCount);
 
-			gDropdownItemsChecked |= (1 << RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_SOUND_DEVICE, uint32));
+			dropdown_set_checked(RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_SOUND_DEVICE, uint32), true);
 			break;
 		case WIDX_TITLE_MUSIC_DROPDOWN:
 			num_items = 4;
@@ -827,7 +885,7 @@ static void window_options_mousedown(int widgetIndex, rct_window*w, rct_widget* 
 
 			window_options_show_dropdown(w, widget, num_items);
 
-			gDropdownItemsChecked = 1 << gConfigSound.title_music;
+			dropdown_set_checked(gConfigSound.title_music, true);
 			break;
 		}
 		break;
@@ -857,10 +915,11 @@ static void window_options_mousedown(int widgetIndex, rct_window*w, rct_widget* 
 				widget->right - widget->left - 3
 				);
 
-			if (gCurrentTheme == 0 || gCurrentTheme == 1)
-				gDropdownItemsChecked = 1 << (gCurrentTheme ^ 1);
-			else
-				gDropdownItemsChecked = 1 << (gCurrentTheme);
+			if (gCurrentTheme == 0 || gCurrentTheme == 1) {
+				dropdown_set_checked(gCurrentTheme ^ 1, true);
+			} else {
+				dropdown_set_checked(gCurrentTheme, true);
+			}
 			break;
 		}
 		break;
@@ -868,12 +927,13 @@ static void window_options_mousedown(int widgetIndex, rct_window*w, rct_widget* 
 	case WINDOW_OPTIONS_PAGE_MISC:
 		switch (widgetIndex) {
 		case WIDX_AUTOSAVE_DROPDOWN:
-			for (i = AUTOSAVE_EVERY_WEEK; i <= AUTOSAVE_NEVER; i++) {
+			for (i = AUTOSAVE_EVERY_MINUTE; i <= AUTOSAVE_NEVER; i++) {
 				gDropdownItemsFormat[i] = 1142;
-				gDropdownItemsArgs[i] = 2701 + i;
+				gDropdownItemsArgs[i] = STR_SAVE_EVERY_MINUTE + i;
 			}
+
 			window_options_show_dropdown(w, widget, AUTOSAVE_NEVER + 1);
-			gDropdownItemsChecked = 1 << gConfigGeneral.autosave_frequency;
+			dropdown_set_checked(gConfigGeneral.autosave_frequency, true);
 			break;
 		case WIDX_TITLE_SEQUENCE_DROPDOWN:
 			num_items = gConfigTitleSequences.num_presets;
@@ -893,7 +953,7 @@ static void window_options_mousedown(int widgetIndex, rct_window*w, rct_widget* 
 				widget->right - widget->left - 3
 				);
 
-			gDropdownItemsChecked = 1 << (gCurrentPreviewTitleSequence);
+			dropdown_set_checked(gCurrentPreviewTitleSequence, true);
 			break;
 		}
 		break;
@@ -981,11 +1041,27 @@ static void window_options_dropdown(rct_window *w, int widgetIndex, int dropdown
 			}
 			break;
 		case WIDX_LANGUAGE_DROPDOWN:
-			if (dropdownIndex != gCurrentLanguage - 1) {
-				language_open(dropdownIndex + 1);
-				gConfigGeneral.language = dropdownIndex + 1;
-				config_save_default();
-				gfx_invalidate_screen();
+			{
+				int fallbackLanguage = gCurrentLanguage;
+				if (dropdownIndex != gCurrentLanguage - 1) {
+					if (!language_open(dropdownIndex + 1))
+					{
+						// Failed to open language file, try to recover by falling
+						// back to previously used language
+						if (language_open(fallbackLanguage))
+						{
+							// It worked, so we can say it with error message in-game
+							window_error_open(STR_LANGUAGE_LOAD_FAILED, STR_NONE);
+						}
+						// report error to console regardless
+						log_error("Failed to open language file.");
+						dropdownIndex = fallbackLanguage - 1;
+					} else {
+						gConfigGeneral.language = dropdownIndex + 1;
+						config_save_default();
+						gfx_invalidate_screen();
+					}
+				}
 			}
 			break;
 		case WIDX_DATE_FORMAT_DROPDOWN:
@@ -1001,9 +1077,8 @@ static void window_options_dropdown(rct_window *w, int widgetIndex, int dropdown
 	case WINDOW_OPTIONS_PAGE_AUDIO:
 		switch (widgetIndex) {
 		case WIDX_SOUND_DROPDOWN:
-			audio_init2(dropdownIndex);
+			audio_init_ride_sounds(dropdownIndex);
 			if (dropdownIndex < gAudioDeviceCount) {
-#ifdef USE_MIXER
 				if (dropdownIndex == 0) {
 					Mixer_Init(NULL);
 					gConfigSound.device = NULL;
@@ -1012,11 +1087,9 @@ static void window_options_dropdown(rct_window *w, int widgetIndex, int dropdown
 					char* devicename = gAudioDevices[dropdownIndex].name;
 					Mixer_Init(devicename);
 					SafeFree(gConfigSound.device);
-					gConfigSound.device = malloc(strlen(devicename) + 1);
-					strcpy(gConfigSound.device, devicename);
+					gConfigSound.device = strndup(devicename, AUDIO_DEVICE_NAME_SIZE);
 				}
 				config_save_default();
-#endif
 			}
 			window_invalidate(w);
 			break;
@@ -1030,9 +1103,9 @@ static void window_options_dropdown(rct_window *w, int widgetIndex, int dropdown
 				window_invalidate(w);
 			}
 
-			stop_title_music();
+			audio_stop_title_music();
 			if (dropdownIndex != 0)
-				start_title_music();
+				audio_start_title_music();
 			break;
 		}
 		break;
@@ -1076,7 +1149,7 @@ static void window_options_dropdown(rct_window *w, int widgetIndex, int dropdown
 }
 
 /**
-*  
+*
 *  rct2: 0x006BAD48
 */
 static void window_options_invalidate(rct_window *w)
@@ -1113,7 +1186,9 @@ static void window_options_invalidate(rct_window *w)
 		widget_set_checkbox_value(w, WIDX_GRIDLINES_CHECKBOX, RCT2_GLOBAL(RCT2_ADDRESS_CONFIG_FLAGS, uint8) & CONFIG_FLAG_ALWAYS_SHOW_GRIDLINES);
 		widget_set_checkbox_value(w, WIDX_HARDWARE_DISPLAY_CHECKBOX, gConfigGeneral.hardware_display);
 		widget_set_checkbox_value(w, WIDX_UNCAP_FPS_CHECKBOX, gConfigGeneral.uncap_fps);
+		widget_set_checkbox_value(w, WIDX_SHOW_FPS_CHECKBOX, gConfigGeneral.show_fps);
 		widget_set_checkbox_value(w, WIDX_MINIMIZE_FOCUS_LOSS, gConfigGeneral.minimize_fullscreen_focus_loss);
+		widget_set_checkbox_value(w, WIDX_STEAM_OVERLAY_PAUSE, gConfigGeneral.steam_overlay_pause);
 		widget_set_checkbox_value(w, WIDX_DAY_NIGHT_CHECKBOX, gConfigGeneral.day_night_cycle);
 		widget_set_checkbox_value(w, WIDX_UPPER_CASE_BANNERS_CHECKBOX, gConfigGeneral.upper_case_banners);
 
@@ -1130,14 +1205,16 @@ static void window_options_invalidate(rct_window *w)
 		window_options_display_widgets[WIDX_CONSTRUCTION_MARKER_DROPDOWN].type = WWT_DROPDOWN_BUTTON;
 		window_options_display_widgets[WIDX_HARDWARE_DISPLAY_CHECKBOX].type = WWT_CHECKBOX;
 		window_options_display_widgets[WIDX_UNCAP_FPS_CHECKBOX].type = WWT_CHECKBOX;
+		window_options_display_widgets[WIDX_SHOW_FPS_CHECKBOX].type = WWT_CHECKBOX;
 		window_options_display_widgets[WIDX_MINIMIZE_FOCUS_LOSS].type = WWT_CHECKBOX;
+		window_options_display_widgets[WIDX_STEAM_OVERLAY_PAUSE].type = WWT_CHECKBOX;
 		window_options_display_widgets[WIDX_DAY_NIGHT_CHECKBOX].type = WWT_CHECKBOX;
 		window_options_display_widgets[WIDX_UPPER_CASE_BANNERS_CHECKBOX].type = WWT_CHECKBOX;
 		break;
 
 	case WINDOW_OPTIONS_PAGE_CULTURE:
 		// currency: pounds, dollars, etc. (10 total)
-		RCT2_GLOBAL(0x013CE952 + 12, uint16) = STR_POUNDS + gConfigGeneral.currency_format;
+		RCT2_GLOBAL(0x013CE952 + 12, uint16) = CurrencyDescriptors[gConfigGeneral.currency_format].stringId;
 
 		// distance: metric/imperial
 		RCT2_GLOBAL(0x013CE952 + 14, uint16) = STR_IMPERIAL + gConfigGeneral.measurement_format;
@@ -1167,13 +1244,13 @@ static void window_options_invalidate(rct_window *w)
 
 		// sound devices
 		if (currentSoundDevice == -1 || gAudioDeviceCount == 0) {
-			RCT2_GLOBAL(0x013CE952, uint16) = STR_SOUND_NONE;
+			RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint16) = STR_SOUND_NONE;
 		}
 		else {
 			if (currentSoundDevice == 0)
-				RCT2_GLOBAL(0x013CE952, uint16) = 5510;
+				RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint16) = 5510;
 			else
-				RCT2_GLOBAL(0x013CE952, uint16) = 1170;
+				RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint16) = 1170;
 
 			RCT2_GLOBAL(0x013CE952 + 2, uint32) = (uint32)gAudioDevices[currentSoundDevice].name;
 		}
@@ -1245,6 +1322,7 @@ static void window_options_invalidate(rct_window *w)
 		widget_set_checkbox_value(w, WIDX_HANDYMEN_MOW_DEFAULT, gConfigGeneral.handymen_mow_default);
 		widget_set_checkbox_value(w, WIDX_DEBUGGING_TOOLS, gConfigGeneral.debugging_tools);
 		widget_set_checkbox_value(w, WIDX_ALLOW_LOADING_WITH_INCORRECT_CHECKSUM, gConfigGeneral.allow_loading_with_incorrect_checksum);
+		widget_set_checkbox_value(w, WIDX_STAY_CONNECTED_AFTER_DESYNC, gConfigNetwork.stay_connected);
 
 		window_options_misc_widgets[WIDX_REAL_NAME_CHECKBOX].type = WWT_CHECKBOX;
 		window_options_misc_widgets[WIDX_SAVE_PLUGIN_DATA_CHECKBOX].type = WWT_CHECKBOX;
@@ -1258,6 +1336,7 @@ static void window_options_invalidate(rct_window *w)
 		window_options_misc_widgets[WIDX_TITLE_SEQUENCE_DROPDOWN].type = WWT_DROPDOWN_BUTTON;
 		window_options_misc_widgets[WIDX_TITLE_SEQUENCE_BUTTON].type = WWT_DROPDOWN_BUTTON;
 		window_options_misc_widgets[WIDX_ALLOW_LOADING_WITH_INCORRECT_CHECKSUM].type = WWT_CHECKBOX;
+		window_options_misc_widgets[WIDX_STAY_CONNECTED_AFTER_DESYNC].type = WWT_CHECKBOX;
 		break;
 
 	case WINDOW_OPTIONS_PAGE_TWITCH:
@@ -1316,6 +1395,10 @@ static void window_options_paint(rct_window *w, rct_drawpixelinfo *dpi)
 		gfx_draw_string_left(dpi, STR_DISPLAY_RESOLUTION, w, w->colours[1], w->x + 10, w->y + window_options_display_widgets[WIDX_RESOLUTION].top + 1);
 		gfx_draw_string_left(dpi, STR_FULLSCREEN_MODE, w, w->colours[1], w->x + 10, w->y + window_options_display_widgets[WIDX_FULLSCREEN].top + 1);
 		gfx_draw_string_left(dpi, STR_CONSTRUCTION_MARKER, w, w->colours[1], w->x + 10, w->y + window_options_display_widgets[WIDX_CONSTRUCTION_MARKER].top + 1);
+		gfx_draw_string_left(dpi, STR_UI_SCALING_DESC, w, w->colours[1], w->x + 10, w->y + window_options_display_widgets[WIDX_SCALE].top + 1);
+
+		int scale = (int)(gConfigGeneral.window_scale * 100);
+		gfx_draw_string_left(dpi, 3311, &scale, w->colours[1], w->x + w->widgets[WIDX_SCALE].left + 1, w->y + w->widgets[WIDX_SCALE].top + 1);
 		break;
 	case WINDOW_OPTIONS_PAGE_CULTURE:
 		gfx_draw_string_left(dpi, 2776, w, w->colours[1], w->x + 10, w->y + window_options_culture_widgets[WIDX_LANGUAGE].top + 1);
@@ -1333,15 +1416,15 @@ static void window_options_paint(rct_window *w, rct_drawpixelinfo *dpi)
 		gfx_draw_string_left(dpi, STR_DISTANCE_AND_SPEED, w, w->colours[1], w->x + 10, w->y + window_options_culture_widgets[WIDX_DISTANCE].top + 1);
 		gfx_draw_string_left(dpi, STR_TEMPERATURE, w, w->colours[1], w->x + 10, w->y + window_options_culture_widgets[WIDX_TEMPERATURE].top + 1);
 		gfx_draw_string_left(dpi, STR_HEIGHT_LABELS, w, w->colours[1], w->x + 10, w->y + window_options_culture_widgets[WIDX_HEIGHT_LABELS].top + 1);
-		gfx_draw_string_left(dpi, 5161, w, w->colours[1], w->x + 10, w->y + window_options_culture_widgets[WIDX_DATE_FORMAT].top + 1);
+		gfx_draw_string_left(dpi, STR_DATE_FORMAT, w, w->colours[1], w->x + 10, w->y + window_options_culture_widgets[WIDX_DATE_FORMAT].top + 1);
 		gfx_draw_string_left(
 			dpi,
-			5162 + gConfigGeneral.date_format,
+			DateFormatStringIds[gConfigGeneral.date_format],
 			NULL,
 			w->colours[1],
 			w->x + window_options_culture_widgets[WIDX_DATE_FORMAT].left + 1,
 			w->y + window_options_culture_widgets[WIDX_DATE_FORMAT].top
-			);
+		);
 		break;
 	case WINDOW_OPTIONS_PAGE_AUDIO:
 		gfx_draw_string_left(dpi, 2738, w, w->colours[1], w->x + 10, w->y + window_options_audio_widgets[WIDX_TITLE_MUSIC].top + 1);
@@ -1372,13 +1455,13 @@ static void window_options_paint(rct_window *w, rct_drawpixelinfo *dpi)
 		gfx_draw_string_left(dpi, 2700, w, w->colours[1], w->x + 10, w->y + window_options_misc_widgets[WIDX_AUTOSAVE].top + 1);
 		gfx_draw_string_left(
 			dpi,
-			2701 + gConfigGeneral.autosave_frequency,
+			STR_SAVE_EVERY_MINUTE + gConfigGeneral.autosave_frequency,
 			NULL,
 			w->colours[1],
 			w->x + window_options_misc_widgets[WIDX_AUTOSAVE].left + 1,
 			w->y + window_options_misc_widgets[WIDX_AUTOSAVE].top
 		);
-		
+
 		RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS + 0, uint32) = (uint32)&gConfigTitleSequences.presets[gCurrentPreviewTitleSequence].name;
 		gfx_draw_string_left(dpi, STR_TITLE_SEQUENCE, w, w->colours[1], w->x + 10, w->y + window_options_misc_widgets[WIDX_TITLE_SEQUENCE].top + 1);
 		gfx_draw_string_left_clipped(
@@ -1408,7 +1491,7 @@ static void window_options_show_dropdown(rct_window *w, rct_widget *widget, int 
 	);
 }
 
-static void window_options_update_height_markers() 
+static void window_options_update_height_markers()
 {
 	RCT2_GLOBAL(RCT2_ADDRESS_CONFIG_HEIGHT_MARKERS, uint16) = gConfigGeneral.show_height_as_units ?
 		0 : (gConfigGeneral.measurement_format + 1) * 256;

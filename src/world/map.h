@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -262,8 +262,10 @@ extern rct_map_element **gMapElementTilePointers;
 
 extern rct_xy16 *gMapSelectionTiles;
 extern rct2_peep_spawn *gPeepSpawns;
+// Used in the land tool window to enable mountain tool / land smoothing
+extern bool gLandMountainMode;
 // Used in the land tool window to allow dragging and changing land styles
-extern bool LandPaintMode;
+extern bool gLandPaintMode;
 // Used in the land rights tool window to either buy land rights or construction rights
 extern bool LandRightsMode;
 // Used in the clear scenery tool
@@ -283,12 +285,15 @@ int map_element_get_terrain_edge(rct_map_element *element);
 void map_element_set_terrain(rct_map_element *element, int terrain);
 void map_element_set_terrain_edge(rct_map_element *element, int terrain);
 int map_height_from_slope(int x, int y, int slope);
+rct_map_element* map_get_banner_element_at(int x, int y, int z, uint8 direction);
 rct_map_element *map_get_surface_element_at(int x, int y);
 rct_map_element* map_get_path_element_at(int x, int y, int z);
+rct_map_element *map_get_fence_element_at(int x, int y, int z, int direction);
+rct_map_element *map_get_small_scenery_element_at(int x, int y, int z, int type);
 int map_element_height(int x, int y);
 void sub_68B089();
 int map_coord_is_connected(int x, int y, int z, uint8 faceDirection);
-void sub_6A876D();
+void map_update_path_wide_flags();
 int map_is_location_owned(int x, int y, int z);
 int map_is_location_in_park(int x, int y);
 bool map_is_location_owned_or_has_rights(int x, int y);
@@ -311,6 +316,7 @@ money32 raise_water(sint16 x0, sint16 y0, sint16 x1, sint16 y1, uint8 flags);
 money32 map_place_fence(int type, int x, int y, int z, int edge, int primaryColour, int secondaryColour, int tertiaryColour, int flags);
 
 void game_command_set_land_height(int *eax, int *ebx, int *ecx, int *edx, int *esi, int *edi, int *ebp);
+void game_command_set_land_ownership(int *eax, int *ebx, int *ecx, int *edx, int *esi, int *edi, int *ebp);
 void game_command_remove_scenery(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
 void game_command_remove_large_scenery(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
 void game_command_remove_banner(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
@@ -322,6 +328,7 @@ void game_command_clear_scenery(int* eax, int* ebx, int* ecx, int* edx, int* esi
 void game_command_change_surface_style(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
 void game_command_raise_land(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
 void game_command_lower_land(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
+void game_command_smooth_land(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
 void game_command_raise_water(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
 void game_command_lower_water(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
 void game_command_set_water_height(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
@@ -330,6 +337,11 @@ void game_command_place_banner(int* eax, int* ebx, int* ecx, int* edx, int* esi,
 void game_command_place_scenery(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
 void game_command_place_fence(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
 void game_command_place_large_scenery(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
+void game_command_place_park_entrance(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
+void game_command_set_banner_name(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
+void game_command_set_sign_name(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
+void game_command_set_banner_style(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
+void game_command_set_sign_style(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
 
 #define GET_MAP_ELEMENT(x) (&(RCT2_ADDRESS(RCT2_ADDRESS_MAP_ELEMENTS, rct_map_element)[x]))
 #define TILE_MAP_ELEMENT_POINTER(x) (RCT2_ADDRESS(RCT2_ADDRESS_TILE_MAP_ELEMENT_POINTERS, rct_map_element*)[x])
@@ -375,7 +387,10 @@ void map_clear_all_elements();
 rct_map_element *map_get_large_scenery_segment(int x, int y, int z, int direction, int sequence);
 bool map_large_scenery_get_origin(
 	int x, int y, int z, int direction, int sequence,
-	int *outX, int *outY, int *outZ
+	int *outX, int *outY, int *outZ, rct_map_element** outElement
 );
+
+rct_map_element *map_get_track_element_at(int x, int y, int z);
+rct_map_element *map_get_track_element_at_of_type(int x, int y, int z, int trackType);
 
 #endif

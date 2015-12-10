@@ -28,6 +28,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -83,9 +84,20 @@ typedef utf16* utf16string;
 #endif
 
 #define OPENRCT2_NAME				"OpenRCT2"
-#define OPENRCT2_VERSION			"0.0.3"
+#define OPENRCT2_VERSION			"0.0.4"
 #define OPENRCT2_ARCHITECTURE		"x86"
-#define OPENRCT2_PLATFORM			"Windows"
+#ifdef _WIN32
+	#define OPENRCT2_PLATFORM		"Windows"
+#endif // _WIN32
+#ifdef __linux__
+	#define OPENRCT2_PLATFORM		"Linux"
+#endif
+#if defined(__APPLE__) && defined(__MACH__)
+	#define OPENRCT2_PLATFORM		"OS X"
+#endif
+#ifndef OPENRCT2_PLATFORM
+	#error Unknown platform!
+#endif
 #define OPENRCT2_TIMESTAMP			__DATE__ " " __TIME__
 
 // The following constants are for automated build servers
@@ -94,6 +106,7 @@ typedef utf16* utf16string;
 #define OPENRCT2_BRANCH				"develop"
 #define OPENRCT2_COMMIT_SHA1		""
 #define OPENRCT2_COMMIT_SHA1_SHORT	""
+#define OPENRCT2_MASTER_SERVER_URL	"https://servers.openrct2.website"
 
 // Represent fixed point numbers. dp = decimal point
 typedef uint8 fixed8_1dp;
@@ -206,61 +219,57 @@ enum {
 // rct2 @ 0x0097F67C
 static const char * const file_paths[] =
 {
-#ifdef _WIN32
-	"data\\g1.dat",
-#else
-	"data/g1.dat",
-#endif // _WIN32
-	"Data\\PLUGIN.DAT",
-	"Data\\CSS1.DAT",
-	"Data\\CSS2.DAT",
-	"Data\\CSS4.DAT",
-	"Data\\CSS5.DAT",
-	"Data\\CSS6.DAT",
-	"Data\\CSS7.DAT",
-	"Data\\CSS8.DAT",
-	"Data\\CSS9.DAT",
-	"Data\\CSS11.DAT",
-	"Data\\CSS12.DAT",
-	"Data\\CSS13.DAT",
-	"Data\\CSS14.DAT",
-	"Data\\CSS15.DAT",
-	"Data\\CSS3.DAT",
-	"Data\\CSS17.DAT",
-	"Data\\CSS18.DAT",
-	"Data\\CSS19.DAT",
-	"Data\\CSS20.DAT",
-	"Data\\CSS21.DAT",
-	"Data\\CSS22.DAT",
-	"Saved Games\\scores.DAT",
-	"Data\\CSS23.DAT",
-	"Data\\CSS24.DAT",
-	"Data\\CSS25.DAT",
-	"Data\\CSS26.DAT",
-	"Data\\CSS27.DAT",
-	"Data\\CSS28.DAT",
-	"Data\\CSS29.DAT",
-	"Data\\CSS30.DAT",
-	"Data\\CSS31.DAT",
-	"Data\\CSS32.DAT",
-	"Data\\CSS33.DAT",
-	"Data\\CSS34.DAT",
-	"Data\\CSS35.DAT",
-	"Data\\CSS36.DAT",
-	"Data\\CSS37.DAT",
-	"Data\\CSS38.DAT",
+	"Data\\g1.dat",
+	"Data\\plugin.dat",
+	"Data\\css1.dat",
+	"Data\\css2.dat",
+	"Data\\css4.dat",
+	"Data\\css5.dat",
+	"Data\\css6.dat",
+	"Data\\css7.dat",
+	"Data\\css8.dat",
+	"Data\\css9.dat",
+	"Data\\css11.dat",
+	"Data\\css12.dat",
+	"Data\\css13.dat",
+	"Data\\css14.dat",
+	"Data\\css15.dat",
+	"Data\\css3.dat",
+	"Data\\css17.dat",
+	"Data\\css18.dat",
+	"Data\\css19.dat",
+	"Data\\css20.dat",
+	"Data\\css21.dat",
+	"Data\\css22.dat",
+	"Saved Games\\scores.dat",
+	"Data\\css23.dat",
+	"Data\\css24.dat",
+	"Data\\css25.dat",
+	"Data\\css26.dat",
+	"Data\\css27.dat",
+	"Data\\css28.dat",
+	"Data\\css29.dat",
+	"Data\\css30.dat",
+	"Data\\css31.dat",
+	"Data\\css32.dat",
+	"Data\\css33.dat",
+	"Data\\css34.dat",
+	"Data\\css35.dat",
+	"Data\\css36.dat",
+	"Data\\css37.dat",
+	"Data\\css38.dat",
 	"Data\\CUSTOM1.WAV",
 	"Data\\CUSTOM2.WAV",
-	"Data\\CSS39.DAT",
-	"Data\\CSS40.DAT",
-	"Data\\CSS41.DAT",
+	"Data\\css39.dat",
+	"Data\\css40.dat",
+	"Data\\css41.dat",
 	"Scenarios\\Six Flags Magic Mountain.SC6",
-	"Data\\CSS42.DAT",
-	"Data\\CSS43.DAT",
-	"Data\\CSS44.DAT",
-	"Data\\CSS45.DAT",
-	"Data\\CSS46.DAT",
-	"Data\\CSS50.DAT"
+	"Data\\css42.dat",
+	"Data\\css43.dat",
+	"Data\\css44.dat",
+	"Data\\css45.dat",
+	"Data\\css46.dat",
+	"Data\\css50.dat"
 };
 
 // Files to check (rct2 @ 0x0097FB5A)

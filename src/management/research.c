@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -91,7 +91,7 @@ static void research_calculate_expected_date()
 		expectedDay = currentDay + (daysRemaining & 0xFFFF);
 		dayQuotient = expectedDay / 0x10000;
 		dayRemainder = expectedDay % 0x10000;
-		
+
 		expectedMonth = date_get_month(currentMonth + dayQuotient + (daysRemaining >> 16));
 		expectedDay = (dayRemainder * days_in_month[expectedMonth]) >> 16;
 
@@ -176,7 +176,7 @@ void research_finish_item(sint32 entryIndex)
 		base_ride_type = (entryIndex >> 8) & 0xFF;
 		rideEntryIndex = entryIndex & 0xFF;
 		rideEntry = GET_RIDE_ENTRY(rideEntryIndex);
-		RCT2_ADDRESS(0x01357404, uint32)[base_ride_type >> 5] |= (1 << (base_ride_type & 0x1F));
+		RCT2_ADDRESS(0x01357404, uint32)[base_ride_type >> 5] |= (1u << (base_ride_type & 0x1F));
 		RCT2_ADDRESS(0x01357444, uint32)[base_ride_type] = RCT2_ADDRESS(0x0097C468, uint32)[base_ride_type];
 		RCT2_ADDRESS(0x01357644, uint32)[base_ride_type] = RCT2_ADDRESS(0x0097C5D4, uint32)[base_ride_type];
 		if (RideData4[base_ride_type].flags & RIDE_TYPE_FLAG4_3) {
@@ -184,7 +184,7 @@ void research_finish_item(sint32 entryIndex)
 			RCT2_ADDRESS(0x01357444, uint32)[ebx] = RCT2_ADDRESS(0x0097C468, uint32)[ebx];
 			RCT2_ADDRESS(0x01357644, uint32)[ebx] = RCT2_ADDRESS(0x0097C5D4, uint32)[ebx];
 		}
-		RCT2_ADDRESS(0x001357424, uint32)[rideEntryIndex >> 5] |= 1 << (rideEntryIndex & 0x1F);
+		RCT2_ADDRESS(0x001357424, uint32)[rideEntryIndex >> 5] |= 1u << (rideEntryIndex & 0x1F);
 		if (!(rideEntry->flags & RIDE_ENTRY_FLAG_SEPARATE_RIDE)) {
 			for (i = 0; i < 128; i++) {
 				rideEntry2 = GET_RIDE_ENTRY(i);
@@ -194,13 +194,13 @@ void research_finish_item(sint32 entryIndex)
 					continue;
 
 				if (rideEntry2->ride_type[0] == base_ride_type || rideEntry2->ride_type[1] == base_ride_type || rideEntry2->ride_type[2] == base_ride_type)
-					RCT2_ADDRESS(0x001357424, uint32)[i >> 5] |= 1 << (i & 0x1F);
+					RCT2_ADDRESS(0x001357424, uint32)[i >> 5] |= 1u << (i & 0x1F);
 			}
 		}
 
 		// I don't think 0x009AC06C is ever not 0, so probably redundant
 		if (RCT2_GLOBAL(0x009AC06C, uint8) == 0) {
-			RCT2_GLOBAL(0x013CE952, rct_string_id) = ((rideEntry->flags & RIDE_ENTRY_FLAG_SEPARATE_RIDE_NAME)) ?
+			RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, rct_string_id) = ((rideEntry->flags & RIDE_ENTRY_FLAG_SEPARATE_RIDE_NAME)) ?
 				rideEntry->name : base_ride_type + 2;
 			if (!gSilentResearch)
 				news_item_add_to_queue(NEWS_ITEM_RESEARCH, 2249, entryIndex);
@@ -212,12 +212,12 @@ void research_finish_item(sint32 entryIndex)
 		scenerySetEntry = g_scenerySetEntries[entryIndex & 0xFFFF];
 		for (i = 0; i < scenerySetEntry->entry_count; i++) {
 			subSceneryEntryIndex = scenerySetEntry->scenery_entries[i];
-			RCT2_ADDRESS(0x01357BD0, sint32)[subSceneryEntryIndex >> 5] |= 1 << (subSceneryEntryIndex & 0x1F);
+			RCT2_ADDRESS(0x01357BD0, sint32)[subSceneryEntryIndex >> 5] |= 1u << (subSceneryEntryIndex & 0x1F);
 		}
 
 		// I don't think 0x009AC06C is ever not 0, so probably redundant
 		if (RCT2_GLOBAL(0x009AC06C, uint8) == 0) {
-			RCT2_GLOBAL(0x013CE952, rct_string_id) = scenerySetEntry->name;
+			RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, rct_string_id) = scenerySetEntry->name;
 			if (!gSilentResearch)
 				news_item_add_to_queue(NEWS_ITEM_RESEARCH, 2250, entryIndex);
 		}
@@ -295,11 +295,13 @@ void sub_684AC3(){
 				ebp = inner_research;
 			}
 		} while ((inner_research++)->entryIndex != RESEARCHED_ITEMS_END);
+		assert(edx != NULL);
 		edx->entryIndex = research->entryIndex;
+		assert(ebp != NULL);
 		ebp->entryIndex = (research + 1)->entryIndex;
 
 		uint8 cat = edx->category;
-		edx->category = ebp->category;		
+		edx->category = ebp->category;
 		ebp->category = cat;
 	}
 
@@ -322,7 +324,7 @@ void sub_684AC3(){
 		}
 	}
 
-	
+
 	for (research = gResearchItems; research->entryIndex != RESEARCHED_ITEMS_SEPARATOR; research++){
 		research_finish_item(research->entryIndex);
 	}
@@ -351,7 +353,7 @@ void research_remove_non_separate_vehicle_types()
 			researchItem != gResearchItems &&
 			researchItem->entryIndex != RESEARCHED_ITEMS_SEPARATOR &&
 			researchItem->entryIndex != RESEARCHED_ITEMS_END &&
-			researchItem->entryIndex >= 0x10000			
+			researchItem->entryIndex >= 0x10000
 		) {
 			rct_ride_type *rideEntry = GET_RIDE_ENTRY(researchItem->entryIndex & 0xFF);
 			if (!(rideEntry->flags & (RIDE_ENTRY_FLAG_SEPARATE_RIDE | RIDE_ENTRY_FLAG_SEPARATE_RIDE_NAME))) {
@@ -415,6 +417,12 @@ static void research_insert_researched(int entryIndex, int category)
 {
 	rct_research_item *researchItem, *researchItem2;
 
+	researchItem = gResearchItems;
+	// First check to make sure that entry is not already accounted for
+	for (; researchItem->entryIndex != RESEARCHED_ITEMS_END; researchItem++) {
+		if (researchItem->entryIndex == entryIndex)
+			return;
+	}
 	researchItem = gResearchItems;
 	do {
 		if (researchItem->entryIndex == RESEARCHED_ITEMS_SEPARATOR) {

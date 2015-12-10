@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -109,6 +109,12 @@ enum{
 	TRACK_ELEMENT_FLAG_TERMINAL_STATION = (1<<3),
 };
 
+enum {
+	// Not anything to do with colour but uses
+	// that field in the map element
+	TRACK_ELEMENT_COLOUR_FLAG_CABLE_LIFT = (1 << 3),
+};
+
 #define TRACK_ELEMENT_FLAG_MAGNITUDE_MASK 0x0F
 #define TRACK_ELEMENT_FLAG_COLOUR_MASK 0x30
 #define TRACK_ELEMENT_FLAG_STATION_NO_MASK 0x02
@@ -129,7 +135,7 @@ typedef struct {
 		uint32 flags;								// 0x02
 	};
 	union{
-		// After loading the track this is converted to 
+		// After loading the track this is converted to
 		// a flags register
 		uint8 ride_mode;							// 0x06
 		uint8 track_flags;							// 0x06
@@ -518,6 +524,7 @@ int save_track_design(uint8 rideIndex);
 int install_track(char* source_path, char* dest_name);
 void window_track_list_format_name(utf8 *dst, const utf8 *src, int colour, bool quotes);
 void game_command_place_track_design(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
+void game_command_place_maze_design(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp);
 
 void track_save_reset_scenery();
 void track_save_select_nearby_scenery(int rideIndex);
@@ -529,6 +536,7 @@ const rct_track_coordinates *get_track_coord_from_ride(rct_ride *ride, int track
 
 void game_command_place_track(int *eax, int *ebx, int *ecx, int *edx, int *esi, int *edi, int *ebp);
 void game_command_remove_track(int *eax, int *ebx, int *ecx, int *edx, int *esi, int *edi, int *ebp);
+void game_command_set_maze_track(int *eax, int *ebx, int *ecx, int *edx, int *esi, int *edi, int *ebp);
 void game_command_set_brakes_speed(int *eax, int *ebx, int *ecx, int *edx, int *esi, int *edi, int *ebp);
 
 void track_circuit_iterator_begin(track_circuit_iterator *it, rct_xy_element first);
@@ -537,5 +545,11 @@ bool track_circuit_iterator_next(track_circuit_iterator *it);
 
 void track_get_back(rct_xy_element *input, rct_xy_element *output);
 void track_get_front(rct_xy_element *input, rct_xy_element *output);
+
+bool track_element_is_lift_hill(rct_map_element *trackElement);
+
+bool track_element_is_cable_lift(rct_map_element *trackElement);
+void track_element_set_cable_lift(rct_map_element *trackElement);
+void track_element_clear_cable_lift(rct_map_element *trackElement);
 
 #endif

@@ -1,9 +1,9 @@
 /*****************************************************************************
  * Copyright (c) 2014 Ted John
  * OpenRCT2, an open source clone of Roller Coaster Tycoon 2.
- * 
+ *
  * This file is part of OpenRCT2.
- * 
+ *
  * OpenRCT2 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -131,6 +131,10 @@ void painter_setup();
 void sub_688485();
 void sub_688217();
 
+int sub_98197C(sint8 al, sint8 ah, int image_id, sint8 cl, int height, sint16 length_y, sint16 length_x, uint32 rotation);
+int sub_98199C(sint8 al, sint8 ah, int image_id, sint8 cl, int height, sint16 length_y, sint16 length_x, uint32 rotation);
+bool sub_6629BC(int height, uint16 ax, uint32 image_id, int edi);
+
 void viewport_invalidate(rct_viewport *viewport, int left, int top, int right, int bottom);
 
 void screen_get_map_xy(int screenX, int screenY, sint16 *x, sint16 *y, rct_viewport **viewport);
@@ -139,5 +143,7 @@ void screen_get_map_xy_quadrant(sint16 screenX, sint16 screenY, sint16 *mapX, si
 void screen_get_map_xy_quadrant_with_z(sint16 screenX, sint16 screenY, sint16 z, sint16 *mapX, sint16 *mapY, uint8 *quadrant);
 void screen_get_map_xy_side(sint16 screenX, sint16 screenY, sint16 *mapX, sint16 *mapY, uint8 *side);
 void screen_get_map_xy_side_with_z(sint16 screenX, sint16 screenY, sint16 z, sint16 *mapX, sint16 *mapY, uint8 *side);
+
+uint8 get_current_rotation();
 
 #endif

@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -24,6 +24,8 @@
 #include "../localisation/localisation.h"
 #include "../network/network.h"
 #include "../sprites.h"
+#include "../windows/dropdown.h"
+#include "../util/util.h"
 
 enum WINDOW_PLAYER_LIST_WIDGET_IDX {
 	WIDX_BACKGROUND,
@@ -47,8 +49,10 @@ static rct_widget window_player_list_widgets[] = {
 static void window_player_list_mouseup(rct_window *w, int widgetIndex);
 static void window_player_list_resize(rct_window *w);
 static void window_player_list_mousedown(int widgetIndex, rct_window* w, rct_widget* widget);
+static void window_player_list_dropdown(rct_window *w, int widgetIndex, int dropdownIndex);
 static void window_player_list_update(rct_window *w);
 static void window_player_list_scrollgetsize(rct_window *w, int scrollIndex, int *width, int *height);
+static void window_player_list_scrollmousedown(rct_window *w, int scrollIndex, int x, int y);
 static void window_player_list_scrollmouseover(rct_window *w, int scrollIndex, int x, int y);
 static void window_player_list_invalidate(rct_window *w);
 static void window_player_list_paint(rct_window *w, rct_drawpixelinfo *dpi);
@@ -59,7 +63,7 @@ static rct_window_event_list window_player_list_events = {
 	window_player_list_mouseup,
 	window_player_list_resize,
 	window_player_list_mousedown,
-	NULL,
+	window_player_list_dropdown,
 	NULL,
 	window_player_list_update,
 	NULL,
@@ -71,7 +75,7 @@ static rct_window_event_list window_player_list_events = {
 	NULL,
 	NULL,
 	window_player_list_scrollgetsize,
-	NULL,
+	window_player_list_scrollmousedown,
 	NULL,
 	window_player_list_scrollmouseover,
 	NULL,
@@ -85,7 +89,13 @@ static rct_window_event_list window_player_list_events = {
 	window_player_list_scrollpaint
 };
 
+enum {
+	DDIDX_KICK
+};
+
 static void window_player_list_refresh_list(rct_window *w);
+
+static int _dropdownPlayerId;
 
 void window_player_list_open()
 {
@@ -154,6 +164,15 @@ static void window_player_list_mousedown(int widgetIndex, rct_window* w, rct_wid
 	}
 }
 
+static void window_player_list_dropdown(rct_window *w, int widgetIndex, int dropdownIndex)
+{
+	switch (dropdownIndex) {
+	case DDIDX_KICK:
+		network_kick_player(_dropdownPlayerId);
+		break;
+	}
+}
+
 static void window_player_list_update(rct_window *w)
 {
 	widget_invalidate(w, WIDX_TAB1 + w->page);
@@ -176,6 +195,37 @@ static void window_player_list_scrollgetsize(rct_window *w, int scrollIndex, int
 		w->scrolls[0].v_top = i;
 		window_invalidate(w);
 	}
+}
+
+static void window_player_list_scrollmousedown(rct_window *w, int scrollIndex, int x, int y)
+{
+	if (network_get_mode() != NETWORK_MODE_SERVER) {
+		return;
+	}
+
+	int index;
+
+	index = y / 10;
+	if (index >= w->no_list_items)
+		return;
+
+	w->selected_list_item = index;
+	window_invalidate(w);
+
+	rct_widget *listWidget = &w->widgets[WIDX_LIST];
+	int ddx = w->x + listWidget->left + x;
+	int ddy = w->y + listWidget->top + y;
+
+	if (index == 0) {
+		return;
+	}
+	_dropdownPlayerId = network_get_player_id(index);
+	if (_dropdownPlayerId == network_get_current_player_id()) {
+		return;
+	}
+
+	gDropdownItemsFormat[0] = STR_KICK_PLAYER;
+	window_dropdown_show_text(ddx, ddy, 0, 7, 0, 1);
 }
 
 static void window_player_list_scrollmouseover(rct_window *w, int scrollIndex, int x, int y)
@@ -219,7 +269,7 @@ static void window_player_list_scrollpaint(rct_window *w, rct_drawpixelinfo *dpi
 {
 	int y;
 
-	gfx_fill_rect(dpi, dpi->x, dpi->y, dpi->x + dpi->width - 1, dpi->y + dpi->height - 1, ((char*)0x0141FC48)[w->colours[1] * 8]);
+	gfx_fill_rect(dpi, dpi->x, dpi->y, dpi->x + dpi->width - 1, dpi->y + dpi->height - 1, ColourMapA[w->colours[1]].mid_light);
 
 	y = 0;
 	for (int i = 0; i < network_get_num_players(); i++) {
@@ -233,7 +283,7 @@ static void window_player_list_scrollpaint(rct_window *w, rct_drawpixelinfo *dpi
 			int colour = 0;
 			if (i == w->selected_list_item) {
 				gfx_fill_rect(dpi, 0, y, 800, y + 9, 0x02000031);
-				strcpy(&buffer[0], network_get_player_name(i));
+				safe_strncpy(&buffer[0], network_get_player_name(i), sizeof(buffer));
 				colour = w->colours[2];
 			} else {
 				if (network_get_player_flags(i) & NETWORK_PLAYER_FLAG_ISSERVER) {
@@ -241,7 +291,7 @@ static void window_player_list_scrollpaint(rct_window *w, rct_drawpixelinfo *dpi
 				} else {
 					lineCh = utf8_write_codepoint(lineCh, FORMAT_BLACK);
 				}
-				strcpy(lineCh, network_get_player_name(i));
+				safe_strncpy(lineCh, network_get_player_name(i), sizeof(buffer) - (lineCh - buffer));
 			}
 			gfx_clip_string(buffer, 230);
 			gfx_draw_string(dpi, buffer, colour, 0, y - 1);

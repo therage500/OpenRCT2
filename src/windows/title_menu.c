@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -98,7 +98,7 @@ void window_title_menu_open()
 		328, 100,
 		&window_title_menu_events,
 		WC_TITLE_MENU,
-		WF_STICK_TO_BACK | WF_TRANSPARENT | WF_5
+		WF_STICK_TO_BACK | WF_TRANSPARENT | WF_NO_BACKGROUND
 	);
 	window->widgets = window_title_menu_widgets;
 	window->enabled_widgets = (
@@ -111,6 +111,11 @@ void window_title_menu_open()
 
 	// Disable tutorial button
 	window->disabled_widgets = (1 << WIDX_SHOW_TUTORIAL);
+
+#if DISABLE_NETWORK
+	// Disable multiplayer
+	window->widgets[WIDX_MULTIPLAYER].type = WWT_EMPTY;
+#endif
 
 	window_init_scroll_widgets(window);
 }
@@ -190,14 +195,18 @@ static void window_title_menu_cursor(rct_window *w, int widgetIndex, int x, int 
 static void window_title_menu_paint(rct_window *w, rct_drawpixelinfo *dpi)
 {
 	gfx_fill_rect(dpi, w->x, w->y, w->x + w->width - 1, w->y + 82 - 1, 0x2000000 | 51);
-	gfx_fill_rect(
-		dpi,
-		w->x + window_title_menu_widgets[WIDX_MULTIPLAYER].left,
-		w->y + window_title_menu_widgets[WIDX_MULTIPLAYER].top,
-		w->x + window_title_menu_widgets[WIDX_MULTIPLAYER].right,
-		w->y + window_title_menu_widgets[WIDX_MULTIPLAYER].bottom,
-		0x2000000 | 51
-	);
+
+	rct_widget *multiplayerButtonWidget = &window_title_menu_widgets[WIDX_MULTIPLAYER];
+	if (multiplayerButtonWidget->type != WWT_EMPTY) {
+		gfx_fill_rect(
+			dpi,
+			w->x + multiplayerButtonWidget->left,
+			w->y + multiplayerButtonWidget->top,
+			w->x + multiplayerButtonWidget->right,
+			w->y + multiplayerButtonWidget->bottom,
+			0x2000000 | 51
+		);
+	}
 	window_draw_widgets(w, dpi);
 }
 

@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -22,6 +22,7 @@
 #include "../ride/ride.h"
 #include "../ride/ride_data.h"
 #include "../ride/track.h"
+#include "../interface/viewport.h"
 #include "map_animation.h"
 #include "map.h"
 #include "scenery.h"
@@ -36,7 +37,7 @@ static const map_animation_invalidate_event_handler _animatedObjectEventHandlers
 rct_map_animation *gAnimatedObjects = (rct_map_animation*)0x013886A0;
 
 /**
- * 
+ *
  *  rct2: 0x0068AF67
  *
  * @param type (dh)
@@ -48,6 +49,10 @@ void map_animation_create(int type, int x, int y, int z)
 {
 	rct_map_animation *aobj = &gAnimatedObjects[0];
 	int numAnimatedObjects = RCT2_GLOBAL(0x0138B580, uint16);
+	if (numAnimatedObjects >= 2000) {
+		log_error("Exceeded the maximum number of animations");
+		return;
+	}
 	for (int i = 0; i < numAnimatedObjects; i++, aobj++) {
 		if (aobj->x != x)
 			continue;
@@ -150,7 +155,7 @@ static bool map_animation_invalidate_queue_banner(int x, int y, int baseZ)
 		if (!(mapElement->properties.path.type & PATH_FLAG_QUEUE_BANNER))
 			continue;
 
-		int direction = ((mapElement->type >> 6) + RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_ROTATION, uint8)) & 3;
+		int direction = ((mapElement->type >> 6) + get_current_rotation()) & 3;
 		if (direction == MAP_ELEMENT_DIRECTION_NORTH || direction == MAP_ELEMENT_DIRECTION_EAST) {
 			baseZ = mapElement->base_height * 8;
 			map_invalidate_tile_zoom1(x, y, baseZ + 16, baseZ + 30);
@@ -189,7 +194,7 @@ static bool map_animation_invalidate_small_scenery(int x, int y, int baseZ)
 
 		if (sceneryEntry->small_scenery.flags & SMALL_SCENERY_FLAG_IS_CLOCK) {
 			// Peep, looking at scenery
-			if (!(RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_TICKS, uint32) & 0x3FF)) {
+			if (!(RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_TICKS, uint32) & 0x3FF) && RCT2_GLOBAL(RCT2_ADDRESS_GAME_PAUSED, uint8) == 0) {
 				int direction = mapElement->type & 3;
 				int x2 = x - TileDirectionDelta[direction].x;
 				int y2 = y - TileDirectionDelta[direction].y;
@@ -319,6 +324,9 @@ static bool map_animation_invalidate_track_onridephoto(int x, int y, int baseZ)
 		if (mapElement->properties.track.type == TRACK_ELEM_ON_RIDE_PHOTO) {
 			int z = mapElement->base_height * 8;
 			map_invalidate_tile_zoom1(x, y, mapElement->base_height * 8, mapElement->clearance_height * 8);
+			if (RCT2_GLOBAL(RCT2_ADDRESS_GAME_PAUSED, uint8) != 0) {
+				return false;
+			}
 			if (mapElement->properties.track.sequence & 0xF0) {
 				mapElement->properties.track.sequence -= 0x10;
 				return false;
@@ -404,7 +412,7 @@ static bool map_animation_invalidate_banner(int x, int y, int baseZ)
 			continue;
 		if (map_element_get_type(mapElement) != MAP_ELEMENT_TYPE_BANNER)
 			continue;
-		
+
 		baseZ = mapElement->base_height * 8;
 		map_invalidate_tile_zoom1(x, y, baseZ, baseZ + 16);
 		return false;
@@ -445,7 +453,7 @@ static bool map_animation_invalidate_large_scenery(int x, int y, int baseZ)
  *
  *  rct2: 0x006E5B50
  */
-static bool map_animation_invalidate_wall_unknown(int x, int y, int baseZ)
+static bool map_animation_invalidate_wall_door(int x, int y, int baseZ)
 {
 	rct_map_element *mapElement;
 	rct_scenery_entry *sceneryEntry;
@@ -484,7 +492,9 @@ static bool map_animation_invalidate_wall_unknown(int x, int y, int baseZ)
 				}
 			}
 		}
-
+		if (RCT2_GLOBAL(RCT2_ADDRESS_GAME_PAUSED, uint8) != 0) {
+			return false;
+		}
 		mapElement->properties.fence.item[2] = bl;
 		if (di & 1) {
 			int z = mapElement->base_height * 8;
@@ -540,6 +550,6 @@ static const map_animation_invalidate_event_handler _animatedObjectEventHandlers
 	map_animation_invalidate_remove,
 	map_animation_invalidate_banner,
 	map_animation_invalidate_large_scenery,
-	map_animation_invalidate_wall_unknown,
+	map_animation_invalidate_wall_door,
 	map_animation_invalidate_wall
 };

@@ -19,6 +19,7 @@
  *****************************************************************************/
 
 #include "../addresses.h"
+#include "../interface/colour.h"
 #include "../localisation/localisation.h"
 #include "../sprites.h"
 #include "../world/map.h"
@@ -509,7 +510,7 @@ void colour_char_window(uint8 colour, uint16* current_font_flags,uint8* palette_
 
 	int eax;
 
-	eax = RCT2_ADDRESS(0x0141FD45, uint8)[colour * 8];
+	eax = ColourMapB[colour].b;
 	if (*current_font_flags & 2) {
 		eax |= 0x0A0A00;
 	}
@@ -742,7 +743,7 @@ void gfx_draw_string_centred_wrapped_partial(rct_drawpixelinfo *dpi, int x, int 
 static uint32 _ttf_surface_cache_hash(TTF_Font *font, const utf8 *text)
 {
 	uint32 hash = ((uint32)font * 23) ^ 0xAAAAAAAA;
-	for (const uint8 *ch = text; *ch != 0; ch++) {
+	for (const utf8 *ch = text; *ch != 0; ch++) {
 		hash = ror32(hash, 3) ^ (*ch * 13);
 	}
 	return hash;
@@ -880,8 +881,9 @@ static uint32 _ttf_getwidth_cache_get_or_add(TTF_Font *font, const utf8 *text)
 bool ttf_initialise()
 {
 	if (!_ttfInitialised) {
-		if (TTF_Init() != 0)
+		if (TTF_Init() != 0) {
 			return false;
+		}
 
 		for (int i = 0; i < 4; i++) {
 			TTFFontDescriptor *fontDesc = &(gCurrentTTFFontSet->size[i]);
@@ -892,6 +894,7 @@ bool ttf_initialise()
 			fontDesc->font = TTF_OpenFont(fontPath, fontDesc->ptSize);
 			if (fontDesc->font == NULL) {
 				log_error("Unable to load '%s'", fontPath);
+				return false;
 			}
 		}
 
@@ -1246,18 +1249,18 @@ static void ttf_process_initial_colour(int colour, text_draw_info *info)
 			uint32 eax;
 			if (info->flags & 4) {
 				if (info->flags & 8) {
-					eax = RCT2_ADDRESS(0x0141FC48, uint8)[colour * 8];
+					eax = ColourMapA[colour].mid_light;
 					eax = eax << 16;
-					eax = eax | RCT2_ADDRESS(0x0141FC46, uint8)[colour * 8];
+					eax = eax | ColourMapA[colour].dark;
 				} else {
-					eax = RCT2_ADDRESS(0x0141FC49, uint8)[colour * 8];
+					eax = ColourMapA[colour].light;
 					eax = eax << 16;
-					eax = eax | RCT2_ADDRESS(0x0141FC47, uint8)[colour * 8];
+					eax = eax | ColourMapA[colour].mid_dark;
 				}
 			} else {
-				eax = RCT2_ADDRESS(0x0141FC4A, uint8)[colour * 8];
+				eax = ColourMapA[colour].lighter;
 				eax = eax << 16;
-				eax = eax | RCT2_ADDRESS(0x0141FC48, uint8)[colour * 8];
+				eax = eax | ColourMapA[colour].mid_light;
 			}
 
 			// Adjust text palette. Store current colour? ;
@@ -1321,7 +1324,7 @@ static int ttf_get_string_width(const utf8 *text)
  *
  *  rct2: 0x00682F28
  */
-void gfx_draw_string_with_y_offsets(rct_drawpixelinfo *dpi, utf8 *text, int colour, int x, int y, const sint8 *yOffsets)
+void gfx_draw_string_with_y_offsets(rct_drawpixelinfo *dpi, const utf8 *text, int colour, int x, int y, const sint8 *yOffsets, bool forceSpriteFont)
 {
 	text_draw_info info;
 	info.font_sprite_base = RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_FONT_SPRITE_BASE, uint16);
@@ -1334,7 +1337,9 @@ void gfx_draw_string_with_y_offsets(rct_drawpixelinfo *dpi, utf8 *text, int colo
 
 	info.flags |= TEXT_DRAW_FLAG_Y_OFFSET_EFFECT;
 
-	// if (gUseTrueTypeFont) info.flags |= TEXT_DRAW_FLAG_TTF;
+	if (!forceSpriteFont && gUseTrueTypeFont) {
+		info.flags |= TEXT_DRAW_FLAG_TTF;
+	}
 
 	memcpy(info.palette, text_palette, sizeof(info.palette));
 	ttf_process_initial_colour(colour, &info);

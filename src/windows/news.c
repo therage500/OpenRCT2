@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -85,7 +85,7 @@ static rct_window_event_list window_news_events = {
 };
 
 /**
- * 
+ *
  *  rct2: 0x0066E464
  */
 void window_news_open()
@@ -121,7 +121,7 @@ void window_news_open()
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066D4D5
  */
 static void window_news_mouseup(rct_window *w, int widgetIndex)
@@ -134,7 +134,7 @@ static void window_news_mouseup(rct_window *w, int widgetIndex)
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066EAB8
  */
 static void window_news_update(rct_window *w)
@@ -147,7 +147,7 @@ static void window_news_update(rct_window *w)
 		return;
 
 	window_invalidate(w);
-	sound_play_panned(SOUND_CLICK_2, w->x + (w->width / 2), 0, 0, 0);
+	audio_play_sound_panned(SOUND_CLICK_2, w->x + (w->width / 2), 0, 0, 0);
 
 	j = w->news.var_480;
 	w->news.var_480 = -1;
@@ -176,7 +176,7 @@ static void window_news_update(rct_window *w)
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066EA3C
  */
 static void window_news_scrollgetsize(rct_window *w, int scrollIndex, int *width, int *height)
@@ -193,7 +193,7 @@ static void window_news_scrollgetsize(rct_window *w, int scrollIndex, int *width
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066EA5C
  */
 static void window_news_scrollmousedown(rct_window *w, int scrollIndex, int x, int y)
@@ -239,21 +239,21 @@ static void window_news_scrollmousedown(rct_window *w, int scrollIndex, int x, i
 		w->news.var_482 = buttonIndex;
 		w->news.var_484 = 4;
 		window_invalidate(w);
-		sound_play_panned(SOUND_CLICK_1, w->x + (w->width / 2), 0, 0, 0);
+		audio_play_sound_panned(SOUND_CLICK_1, w->x + (w->width / 2), 0, 0, 0);
 	}
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066EAAE
  */
 static void window_news_tooltip(rct_window* w, int widgetIndex, rct_string_id *stringId)
 {
-	RCT2_GLOBAL(0x013CE952, uint16) = 3159;
+	RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint16) = 3159;
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066E4E8
  */
 static void window_news_paint(rct_window *w, rct_drawpixelinfo *dpi)
@@ -267,7 +267,7 @@ static void window_news_invalidate(rct_window *w)
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066E4EE
  */
 static void window_news_scrollpaint(rct_window *w, rct_drawpixelinfo *dpi, int scrollIndex)
@@ -290,7 +290,7 @@ static void window_news_scrollpaint(rct_window *w, rct_drawpixelinfo *dpi, int s
 		gfx_fill_rect_inset(dpi, -1, y, 383, y + 41, w->colours[1], 0x24);
 
 		// Date text
-		RCT2_GLOBAL(0x013CE952, uint16) = STR_DATE_DAY_1 + newsItem->day - 1;
+		RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint16) = STR_DATE_DAY_1 + newsItem->day - 1;
 		RCT2_GLOBAL(0x013CE952 + 2, uint16) = STR_MONTH_MARCH + (newsItem->month_year % 8);
 		gfx_draw_string_left(dpi, 2235, (void*)0x013CE952, 2, 4, y);
 
@@ -346,7 +346,7 @@ static void window_news_scrollpaint(rct_window *w, rct_drawpixelinfo *dpi, int s
 				gfx_draw_sprite(cliped_dpi, image_id, clip_x, clip_y, 0);
 
 				rct2_free(cliped_dpi);
-				break; 
+				break;
 			}
 			case NEWS_ITEM_MONEY:
 				gfx_draw_sprite(dpi, SPR_FINANCE, x, yy, 0);

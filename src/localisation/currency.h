@@ -35,6 +35,9 @@ typedef enum {
 	CURRENCY_GUILDERS,			// Dutch Gilder
 	CURRENCY_KRONA,				// Swedish Krona
 	CURRENCY_EUROS,				// Euro
+	CURRENCY_WON,				// South Korean Won
+	CURRENCY_ROUBLE,			// Russian Rouble
+	CURRENCY_CZECH_KORUNA,		// Czech koruna
 
 	CURRENCY_END				// Last item
 } CURRENCY_TYPE;
@@ -44,15 +47,20 @@ typedef enum {
 	CURRENCY_SUFFIX
 } CURRENCY_AFFIX;
 
+#define CURRENCY_SYMBOL_MAX_SIZE 8
+
 // Currency format specification - inspired by OpenTTD
 typedef struct {
-	// Rate is relative to 0.1 GBP
+	// Rate is relative to 0.10 GBP
 	int rate;
-	utf8 symbol[8];
-	int affix;
-} rct_currency_spec;
+	uint8 affix_unicode;
+	utf8 symbol_unicode[CURRENCY_SYMBOL_MAX_SIZE];
+	uint8 affix_ascii;
+	char symbol_ascii[CURRENCY_SYMBOL_MAX_SIZE];
+	rct_string_id stringId;
+} currency_descriptor;
 
 // List of currency formats
-extern const rct_currency_spec g_currency_specs[CURRENCY_END];
+extern const currency_descriptor CurrencyDescriptors[CURRENCY_END];
 
 #endif

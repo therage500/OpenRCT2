@@ -2221,7 +2221,7 @@ STR_2213    :{SMALLFONT}{BLACK}Mostra la lista degli intrattenitori del parco
 STR_2214    :Non è possibile costruire quando il gioco è in pausa!!
 STR_2215    :{STRINGID}{NEWLINE}({STRINGID})
 STR_2216    :{WINDOW_COLOUR_2}{COMMA16}{DEGREE}C
-STR_2217    :{WINDOW_COLOUR_2}{COMMA16}F
+STR_2217    :{WINDOW_COLOUR_2}{COMMA16}{DEGREE}F
 STR_2218    :{RED}{STRINGID} sull'attrazione {STRINGID} non ha ancora fatto ritorno presso: {STRINGID} !!{NEWLINE}Controlla se si è bloccato o se è entrato in stallo
 STR_2219    :{RED}{COMMA16} persone sono rimaste uccise in un incidente su {STRINGID}
 STR_2220    :{WINDOW_COLOUR_2}Valutazione del parco: {BLACK}{COMMA16}
@@ -2371,7 +2371,7 @@ STR_2363    :Griglia sovrapposta al paesaggio
 STR_2364    :{SMALLFONT}{BLACK}Attiva/disattiva la griglia sovrapposta al paesaggio
 STR_2365    :La banca si è rifiutata di concederti altri prestiti!!
 STR_2366    :Celsius ({DEGREE}C)
-STR_2367    :Fahrenheit (F)
+STR_2367    :Fahrenheit ({DEGREE}F)
 STR_2368    :Nessuno
 STR_2369    :Basso
 STR_2370    :Medio
@@ -2705,12 +2705,12 @@ STR_2697    :???
 STR_2698    :???
 STR_2699    :???
 STR_2700    :Autosave frequency:
-STR_2701    :Every week
-STR_2702    :Every 2 weeks
-STR_2703    :Every month
-STR_2704    :Every 4 months
-STR_2705    :Every year
-STR_2706    :Never
+STR_2701    :Ogni minuto
+STR_2702    :Ogni 5 minuti
+STR_2703    :Ogni 15 minuti
+STR_2704    :Ogni 30 minuti
+STR_2705    :Ogni ora
+STR_2706    :Mai
 STR_2707    :Open new window
 STR_2708    :{WINDOW_COLOUR_1}Are you sure you want to overwrite {STRINGID}?
 STR_2709    :Overwrite

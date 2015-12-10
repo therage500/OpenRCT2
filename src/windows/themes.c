@@ -552,10 +552,11 @@ static void window_themes_mousedown(int widgetIndex, rct_window* w, rct_widget* 
 			widget->right - widget->left - 3
 			);
 
-		if (gCurrentTheme == 0 || gCurrentTheme == 1)
-			gDropdownItemsChecked = 1 << (gCurrentTheme ^ 1);
-		else
-			gDropdownItemsChecked = 1 << (gCurrentTheme);
+		if (gCurrentTheme == 0 || gCurrentTheme == 1) {
+			dropdown_set_checked(gCurrentTheme ^ 1, true);
+		} else {
+			dropdown_set_checked(gCurrentTheme, true);
+		}
 		break;
 	case WIDX_THEMES_RCT1_RIDE_LIGHTS:
 		if (gCurrentTheme >= 2) {
@@ -726,7 +727,7 @@ static void window_themes_textinput(rct_window *w, int widgetIndex, char *text)
 
 void window_themes_tooltip(rct_window* w, int widgetIndex, rct_string_id *stringId)
 {
-	RCT2_GLOBAL(0x013CE952, uint16) = STR_LIST;
+	RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint16) = STR_LIST;
 }
 
 void window_themes_invalidate(rct_window *w)
@@ -753,7 +754,7 @@ void window_themes_invalidate(rct_window *w)
 	window_themes_widgets[WIDX_THEMES_LIST].right = w->width - 4;
 	window_themes_widgets[WIDX_THEMES_LIST].bottom = w->height - 0x0F;
 
-	
+
 	window_themes_widgets[WIDX_THEMES_LIST].type = WWT_EMPTY;
 	window_themes_widgets[WIDX_THEMES_RCT1_RIDE_LIGHTS].type = WWT_EMPTY;
 	window_themes_widgets[WIDX_THEMES_RCT1_PARK_LIGHTS].type = WWT_EMPTY;
@@ -843,8 +844,8 @@ void window_themes_scrollpaint(rct_window *w, rct_drawpixelinfo *dpi, int scroll
 		return;
 
 	if ((w->colours[1] & 0x80) == 0)
-		//gfx_fill_rect(dpi, dpi->x, dpi->y, dpi->x + dpi->width - 1, dpi->y + dpi->height - 1, ((char*)0x0141FC48)[w->colours[1] * 8]);
-		gfx_clear(dpi, ((char*)0x0141FC48)[w->colours[1] * 8] * 0x1010101);
+		//gfx_fill_rect(dpi, dpi->x, dpi->y, dpi->x + dpi->width - 1, dpi->y + dpi->height - 1, ColourMapA[w->colours[1]].mid_light);
+		gfx_clear(dpi, ColourMapA[w->colours[1]].mid_light * 0x1010101);
 	y = 0;
 	for (int i = 0; i < get_colour_scheme_tab_count(); i++) {
 		if (y > dpi->y + dpi->height) {
@@ -861,9 +862,9 @@ void window_themes_scrollpaint(rct_window *w, rct_drawpixelinfo *dpi, int scroll
 					gfx_fill_rect(dpi, 0, y + _row_height - 1, window_themes_widgets[WIDX_THEMES_LIST].right, y + _row_height - 1, colour + 2);
 				}
 				else {
-					colour = RCT2_ADDRESS(0x0141FC47, uint8)[w->colours[1] * 8];
+					colour = ColourMapA[w->colours[1]].mid_dark;
 					gfx_fill_rect(dpi, 0, y + _row_height - 2, window_themes_widgets[WIDX_THEMES_LIST].right, y + _row_height - 2, colour);
-					colour = RCT2_ADDRESS(0x0141FC4B, uint8)[w->colours[1] * 8];
+					colour = ColourMapA[w->colours[1]].lightest;
 					gfx_fill_rect(dpi, 0, y + _row_height - 1, window_themes_widgets[WIDX_THEMES_LIST].right, y + _row_height - 1, colour);
 				}
 			}

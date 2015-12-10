@@ -29,6 +29,7 @@
 #include "dropdown.h"
 #include "error.h"
 #include "../interface/themes.h"
+#include "../util/util.h"
 
 #pragma region Widgets
 
@@ -401,15 +402,15 @@ static void window_editor_objective_options_main_mouseup(rct_window *w, int widg
 		window_editor_objective_options_set_page(w, widgetIndex - WIDX_TAB_1);
 		break;
 	case WIDX_PARK_NAME:
-		RCT2_GLOBAL(0x013CE962, uint32) = RCT2_GLOBAL(0x013573D8, uint32);
+		RCT2_GLOBAL(0x013CE962, uint32) = RCT2_GLOBAL(RCT2_ADDRESS_PARK_NAME_ARGS, uint32);
 		window_text_input_open(w, WIDX_PARK_NAME, STR_PARK_NAME, STR_ENTER_PARK_NAME, RCT2_GLOBAL(RCT2_ADDRESS_PARK_NAME, rct_string_id), 0, 32);
 		break;
 	case WIDX_SCENARIO_NAME:
-		strcpy((char*)0x009BC677, s6Info->name);
-		window_text_input_open(w, WIDX_SCENARIO_NAME, 3313, 3314, 3165, 0, 32);
+		safe_strncpy((char*)0x009BC677, s6Info->name, 64);
+		window_text_input_open(w, WIDX_SCENARIO_NAME, STR_SCENARIO_NAME, STR_ENTER_SCENARIO_NAME, 3165, 0, 64);
 		break;
 	case WIDX_DETAILS:
-		strcpy((char*)0x009BC677, s6Info->details);
+		safe_strncpy((char*)0x009BC677, s6Info->details, 256);
 		window_text_input_open(w, WIDX_DETAILS, 3315, 3316, 3165, 0, 256);
 		break;
 	}
@@ -496,7 +497,7 @@ static void window_editor_objective_options_show_objective_dropdown(rct_window *
 	objectiveType = RCT2_GLOBAL(RCT2_ADDRESS_OBJECTIVE_TYPE, uint8);
 	for (i = 0; i < numItems; i++) {
 		if (gDropdownItemsArgs[i] - STR_OBJECTIVE_DROPDOWN_NONE == objectiveType) {
-			gDropdownItemsChecked = (1 << i);
+			dropdown_set_checked(i, true);
 			break;
 		}
 	}
@@ -506,7 +507,7 @@ static void window_editor_objective_options_show_climate_dropdown(rct_window *w)
 {
 	int i;
 	rct_widget *dropdownWidget;
-	
+
 	dropdownWidget = &w->widgets[WIDX_CLIMATE];
 
 	for (i = 0; i < 4; i++) {
@@ -522,7 +523,7 @@ static void window_editor_objective_options_show_climate_dropdown(rct_window *w)
 		4,
 		dropdownWidget->right - dropdownWidget->left - 3
 	);
-	gDropdownItemsChecked = (1 << RCT2_GLOBAL(RCT2_ADDRESS_CLIMATE, uint8));
+	dropdown_set_checked(RCT2_GLOBAL(RCT2_ADDRESS_CLIMATE, uint8), true);
 }
 
 static void window_editor_objective_options_show_category_dropdown(rct_window *w)
@@ -530,7 +531,7 @@ static void window_editor_objective_options_show_category_dropdown(rct_window *w
 	rct_s6_info *s6Info = (rct_s6_info*)0x00141F570;
 	int i;
 	rct_widget *dropdownWidget;
-	
+
 	dropdownWidget = &w->widgets[WIDX_CATEGORY];
 
 	for (i = 0; i < 5; i++) {
@@ -546,7 +547,7 @@ static void window_editor_objective_options_show_category_dropdown(rct_window *w
 		5,
 		dropdownWidget->right - dropdownWidget->left - 3
 	);
-	gDropdownItemsChecked = (1 << s6Info->category);
+	dropdown_set_checked(s6Info->category, true);
 }
 
 static void window_editor_objective_options_arg_1_increase(rct_window *w)
@@ -785,10 +786,20 @@ static void window_editor_objective_options_main_textinput(rct_window *w, int wi
 		break;
 	case WIDX_SCENARIO_NAME:
 		strncpy(s6Info->name, text, 64);
+		if (strnlen(s6Info->name, 64) == 64)
+		{
+			s6Info->name[64 - 1] = '\0';
+			log_warning("Truncated S6 name: %s", s6Info->name);
+		}
 		window_invalidate(w);
 		break;
 	case WIDX_DETAILS:
 		strncpy(s6Info->details, text, 256);
+		if (strnlen(s6Info->details, 256) == 256)
+		{
+			s6Info->details[256 - 1] = '\0';
+			log_warning("Truncated S6 name: %s", s6Info->details);
+		}
 		window_invalidate(w);
 		break;
 	}
@@ -992,7 +1003,7 @@ static void window_editor_objective_options_main_paint(rct_window *w, rct_drawpi
 	if (stex != NULL) {
 		RCT2_GLOBAL(0x013CE952 + 0, uint16) = stex->scenario_name;
 	} else {
-		strcpy((char*)0x009BC677, s6Info->name);
+		safe_strncpy((char*)0x009BC677, s6Info->name, 64);
 		RCT2_GLOBAL(0x013CE952 + 0, uint16) = 3165;
 	}
 	RCT2_GLOBAL(0x013CE952 + 2, uint32) = RCT2_GLOBAL(0x0013573D8, uint32);
@@ -1011,7 +1022,7 @@ static void window_editor_objective_options_main_paint(rct_window *w, rct_drawpi
 	if (stex != NULL) {
 		RCT2_GLOBAL(0x013CE952 + 0, uint16) = stex->details;
 	} else {
-		strcpy((char*)0x009BC677, s6Info->details);
+		safe_strncpy((char*)0x009BC677, s6Info->details, 256);
 		RCT2_GLOBAL(0x013CE952 + 0, uint16) = 3165;
 	}
 	RCT2_GLOBAL(0x013CE952 + 2, uint32) = RCT2_GLOBAL(0x0013573D8, uint32);
@@ -1176,7 +1187,7 @@ static void window_editor_objective_options_rides_scrollpaint(rct_window *w, rct
 	rct_string_id stringId;
 	rct_ride *ride;
 
-	colour = RCT2_GLOBAL(0x0141FC48 + (w->colours[1] * 8), uint8);
+	colour = ColourMapA[w->colours[1]].mid_light;
 	gfx_fill_rect(dpi, dpi->x, dpi->y, dpi->x + dpi->width - 1, dpi->y + dpi->height - 1, colour);
 
 	for (i = 0; i < w->no_list_items; i++) {
@@ -1224,7 +1235,7 @@ static void window_editor_objective_options_update_disabled_widgets(rct_window *
 			numRides++;
 		}
 	}
-	
+
 	if (numRides == 0) {
 		w->disabled_widgets &= ~(1 << WIDX_TAB_2);
 	} else {

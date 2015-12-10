@@ -29,6 +29,7 @@
 #include "../world/scenery.h"
 #include "../interface/themes.h"
 #include "../rct1.h"
+#include "../util/util.h"
 
 #pragma region Widgets
 
@@ -164,7 +165,7 @@ static int research_item_is_always_researched(rct_research_item *researchItem)
 	return (researchItem->entryIndex & (RESEARCH_ENTRY_FLAG_RIDE_ALWAYS_RESEARCHED | RESEARCH_ENTRY_FLAG_SCENERY_SET_ALWAYS_RESEARCHED)) != 0;
 }
 
-/* rct2: 0x0068596F 
+/* rct2: 0x0068596F
  * Sets rides that are in use to be always researched
  */
 static void research_rides_setup(){
@@ -239,11 +240,11 @@ static void research_rides_setup(){
 	}
 }
 
-/* rct2: 0x0068590C 
+/* rct2: 0x0068590C
  * Sets the critical scenery sets to always researched
  */
 static void research_scenery_sets_setup(){
-	
+
 	for (rct_object_entry* object = RCT2_ADDRESS(0x0098DA74, rct_object_entry);
 		(object->flags & 0xFF) != 0xFF;
 		object++){
@@ -284,8 +285,8 @@ static void research_always_researched_setup()
  *  rct2: 0x00685A79
  */
 static void sub_685A79()
-{	
-	for (rct_research_item* research = gResearchItems; 
+{
+	for (rct_research_item* research = gResearchItems;
 		research->entryIndex != RESEARCHED_ITEMS_END_2;
 		research++){
 
@@ -304,7 +305,7 @@ static rct_string_id research_item_get_name(uint32 researchItem)
 {
 	rct_ride_type *rideEntry;
 	rct_scenery_set_entry *sceneryEntry;
-	
+
 	if (researchItem < 0x10000) {
 		sceneryEntry = g_scenerySetEntries[researchItem & 0xFF];
 		if (sceneryEntry == NULL || sceneryEntry == (rct_scenery_set_entry*)0xFFFFFFFF)
@@ -344,7 +345,7 @@ static void research_items_shuffle()
 
 	// Shuffle list
 	for (i = 0; i < numNonResearchedItems; i++) {
-		ri = rand() % numNonResearchedItems;
+		ri = util_rand() % numNonResearchedItems;
 		if (ri == i)
 			continue;
 
@@ -532,7 +533,7 @@ void window_editor_inventions_list_open()
 		400,
 		&window_editor_inventions_list_events,
 		WC_EDITOR_INVENTION_LIST,
-		WF_2
+		WF_NO_SCROLLING
 	);
 	w->widgets = window_editor_inventions_list_widgets;
 	w->enabled_widgets =
@@ -624,7 +625,7 @@ static void window_editor_inventions_list_scrollgetheight(rct_window *w, int scr
 	// Count / skip pre-researched items
 	for (researchItem = gResearchItems; researchItem->entryIndex != RESEARCHED_ITEMS_SEPARATOR; researchItem++)
 		*height += 10;
-	
+
 	if (scrollIndex == 1) {
 		researchItem++;
 
@@ -675,7 +676,7 @@ static void window_editor_inventions_list_scrollmouseover(rct_window *w, int scr
  */
 static void window_editor_inventions_list_tooltip(rct_window* w, int widgetIndex, rct_string_id *stringId)
 {
-	RCT2_GLOBAL(0x013CE952, uint16) = 3159;
+	RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint16) = 3159;
 }
 
 /**
@@ -736,7 +737,7 @@ static void window_editor_inventions_list_paint(rct_window *w, rct_drawpixelinfo
 	int x, y, width;
 
 	window_draw_widgets(w, dpi);
-	
+
 	// Tab image
 	x = w->x + w->widgets[WIDX_TAB_1].left;
 	y = w->y + w->widgets[WIDX_TAB_1].top;
@@ -760,7 +761,7 @@ static void window_editor_inventions_list_paint(rct_window *w, rct_drawpixelinfo
 		w->y + widget->top + 1,
 		w->x + widget->right - 1,
 		w->y + widget->bottom - 1,
-		RCT2_GLOBAL(0x0141FC44 + (w->colours[1] * 8), uint8)
+		ColourMapA[w->colours[1]].darkest
 	);
 
 	researchItem = _editorInventionsListDraggedItem;
@@ -814,7 +815,7 @@ static void window_editor_inventions_list_scrollpaint(rct_window *w, rct_drawpix
 	utf8 buffer[256], *ptr;
 
 	// Draw background
-	colour = RCT2_GLOBAL(0x0141FC48 + (w->colours[1] * 8), uint8);
+	colour = ColourMapA[w->colours[1]].mid_light;
 	colour = (colour << 24) | (colour << 16) | (colour << 8) | colour;
 	gfx_clear(dpi, colour);
 
@@ -831,7 +832,7 @@ static void window_editor_inventions_list_scrollpaint(rct_window *w, rct_drawpix
 
 	// Since this is now a do while need to conteract the +10
 	itemY = -10;
-	do{ 
+	do{
 		itemY += 10;
 		if (itemY + 10 < dpi->y || itemY >= dpi->y + dpi->height)
 			continue;

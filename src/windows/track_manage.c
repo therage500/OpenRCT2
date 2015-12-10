@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -185,7 +185,7 @@ static void window_track_manage_close(rct_window *w)
  */
 static void window_track_manage_mouseup(rct_window *w, int widgetIndex)
 {
-	uint8 *trackDesignList = (uint8*)0x00F441EC;
+	char *trackDesignList = RCT2_ADDRESS(RCT2_ADDRESS_TRACK_LIST, char);
 	rct_window *trackDesignListWindow;
 	char *dst, *src;
 

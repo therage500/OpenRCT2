@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -26,7 +26,7 @@
 
 // Size: 0x10
 typedef struct {
-	char* bits;			// 0x00
+	uint8* bits;		// 0x00
 	short x;			// 0x04
 	short y;			// 0x06
 	short width;		// 0x08
@@ -79,7 +79,7 @@ extern int gLastDrawStringY;
 extern rct_g1_element *g1Elements;
 extern rct_gx g2;
 
-// 
+//
 rct_drawpixelinfo* clip_drawpixelinfo(rct_drawpixelinfo* dpi, int left, int width, int top, int height);
 void gfx_set_dirty_blocks(sint16 left, sint16 top, sint16 right, sint16 bottom);
 void gfx_draw_all_dirty_blocks();
@@ -109,7 +109,7 @@ int gfx_load_g1();
 int gfx_load_g2();
 void sub_68371D();
 void gfx_bmp_sprite_to_buffer(uint8* palette_pointer, uint8* unknown_pointer, uint8* source_pointer, uint8* dest_pointer, rct_g1_element* source_image, rct_drawpixelinfo *dest_dpi, int height, int width, int image_type);
-void gfx_rle_sprite_to_buffer(uint8* source_bits_pointer, uint8* dest_bits_pointer, uint8* palette_pointer, rct_drawpixelinfo *dpi, int image_type, int source_y_start, int height, int source_x_start, int width);
+void gfx_rle_sprite_to_buffer(const uint8* source_bits_pointer, uint8* dest_bits_pointer, const uint8* palette_pointer, const rct_drawpixelinfo *dpi, int image_type, int source_y_start, int height, int source_x_start, int width);
 void gfx_draw_sprite(rct_drawpixelinfo *dpi, int image_id, int x, int y, uint32 tertiary_colour);
 void gfx_draw_sprite_palette_set(rct_drawpixelinfo *dpi, int image_id, int x, int y, uint8* palette_pointer, uint8* unknown_pointer);
 void gfx_draw_sprite_raw_masked(rct_drawpixelinfo *dpi, int x, int y, int maskImage, int colourImage);
@@ -134,7 +134,7 @@ void gfx_draw_string_right(rct_drawpixelinfo *dpi, int format, void *args, int c
 void draw_string_right_underline(rct_drawpixelinfo *dpi, int format, void *args, int colour, int x, int y);
 int string_get_height_raw(char *buffer);
 void gfx_draw_string_centred_wrapped_partial(rct_drawpixelinfo *dpi, int x, int y, int width, int colour, rct_string_id format, void *args, int ticks);
-void gfx_draw_string_with_y_offsets(rct_drawpixelinfo *dpi, utf8 *text, int colour, int x, int y, const sint8 *yOffsets);
+void gfx_draw_string_with_y_offsets(rct_drawpixelinfo *dpi, const utf8 *text, int colour, int x, int y, const sint8 *yOffsets, bool forceSpriteFont);
 int gfx_clip_string(char* buffer, int width);
 
 bool ttf_initialise();

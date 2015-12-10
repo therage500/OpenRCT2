@@ -21,6 +21,7 @@
 #ifdef _WIN32
 
 #include <windows.h>
+#include <psapi.h>
 #include <shlobj.h>
 #include <SDL_syswm.h>
 #include <sys/stat.h>
@@ -29,13 +30,16 @@
 #include "../openrct2.h"
 #include "../localisation/language.h"
 #include "../localisation/currency.h"
+#include "../util/util.h"
 #include "../config.h"
 #include "platform.h"
 
 // The name of the mutex used to prevent multiple instances of the game from running
 #define SINGLE_INSTANCE_MUTEX_NAME "RollerCoaster Tycoon 2_GSKMUTEX"
 
-LPSTR *CommandLineToArgvA(LPSTR lpCmdLine, int *argc);
+utf8 _userDataDirectoryPath[MAX_PATH] = { 0 };
+
+utf8 **windows_get_command_line_args(int *outNumArgs);
 
 /**
  * Windows entry point to OpenRCT2 without a console window.
@@ -73,16 +77,63 @@ __declspec(dllexport) int StartOpenRCT(HINSTANCE hInstance, HINSTANCE hPrevInsta
 	RCT2_GLOBAL(RCT2_ADDRESS_HINSTANCE, HINSTANCE) = hInstance;
 	RCT2_GLOBAL(RCT2_ADDRESS_CMDLINE, LPSTR) = lpCmdLine;
 
-	// Get command line arguments in standard form
-	argv = CommandLineToArgvA(lpCmdLine, &argc);
+	// argv = CommandLineToArgvA(lpCmdLine, &argc);
+	argv = (char**)windows_get_command_line_args(&argc);
 	runGame = cmdline_run((const char **)argv, argc);
-	GlobalFree(argv);
 
-	if (runGame)
+	// Free argv
+	for (int i = 0; i < argc; i++) {
+		free(argv[i]);
+	}
+	free(argv);
+
+	if (runGame) {
 		openrct2_launch();
+	}
 
 	exit(gExitCode);
 	return gExitCode;
+}
+
+utf8 **windows_get_command_line_args(int *outNumArgs)
+{
+	int argc;
+
+	// Get command line arguments as widechar
+	LPWSTR commandLine = GetCommandLineW();
+	LPWSTR *argvW = CommandLineToArgvW(commandLine, &argc);
+
+	// Convert to UTF-8
+	utf8 **argvUtf8 = (utf8**)malloc(argc * sizeof(utf8*));
+	for (int i = 0; i < argc; i++) {
+		argvUtf8[i] = widechar_to_utf8(argvW[i]);
+	}
+	LocalFree(argvW);
+
+	*outNumArgs = argc;
+	return argvUtf8;
+}
+
+void platform_get_date(rct2_date *out_date)
+{
+	assert(out_date != NULL);
+	SYSTEMTIME systime;
+
+	GetSystemTime(&systime);
+	out_date->day = systime.wDay;
+	out_date->month = systime.wMonth;
+	out_date->year = systime.wYear;
+	out_date->day_of_week = systime.wDayOfWeek;
+}
+
+void platform_get_time(rct2_time *out_time)
+{
+	assert(out_time != NULL);
+	SYSTEMTIME systime;
+	GetLocalTime(&systime);
+	out_time->hour = systime.wHour;
+	out_time->minute = systime.wMinute;
+	out_time->second = systime.wSecond;
 }
 
 char platform_get_path_separator()
@@ -110,7 +161,7 @@ bool platform_directory_exists(const utf8 *path)
 bool platform_original_game_data_exists(const utf8 *path)
 {
 	utf8 checkPath[MAX_PATH];
-	sprintf(checkPath, "%s%c%s%c%s", path, platform_get_path_separator(), "data", platform_get_path_separator(), "g1.dat");
+	sprintf(checkPath, "%s%c%s%c%s", path, platform_get_path_separator(), "Data", platform_get_path_separator(), "g1.dat");
 	return platform_file_exists(checkPath);
 }
 
@@ -356,58 +407,57 @@ bool platform_file_delete(const utf8 *path)
 	return success == TRUE;
 }
 
-void platform_hide_cursor()
+/**
+ * Default directory fallback is:
+ *   - (command line argument)
+ *   - C:\Users\%USERNAME%\OpenRCT2 (as from SHGetFolderPathW)
+ */
+void platform_resolve_user_data_path()
 {
-	ShowCursor(FALSE);
-}
+	wchar_t wOutPath[MAX_PATH];
+	const char separator[2] = { platform_get_path_separator(), 0 };
 
-void platform_show_cursor()
-{
-	ShowCursor(TRUE);
-}
+	if (gCustomUserDataPath[0] != 0) {
+		wchar_t *customUserDataPathW = utf8_to_widechar(gCustomUserDataPath);
+		if (GetFullPathNameW(customUserDataPathW, countof(wOutPath), wOutPath, NULL) == 0) {
+			log_fatal("Unable to resolve path '%s'.", gCustomUserDataPath);
+			exit(-1);
+		}
+		utf8 *outPathTemp = widechar_to_utf8(wOutPath);
+		safe_strncpy(_userDataDirectoryPath, outPathTemp, sizeof(_userDataDirectoryPath));
+		free(outPathTemp);
+		free(customUserDataPathW);
 
-void platform_get_cursor_position(int *x, int *y)
-{
-	POINT point;
-
-	if (GetCursorPos(&point)) {
-		*x = point.x;
-		*y = point.y;
-	} else {
-		*x = INT32_MIN;
-		*y = INT32_MIN;
+		// Ensure path ends with separator
+		int len = strlen(_userDataDirectoryPath);
+		if (_userDataDirectoryPath[len - 1] != separator[0]) {
+			strcat(_userDataDirectoryPath, separator);
+		}
+		return;
 	}
-}
 
-void platform_set_cursor_position(int x, int y)
-{
-	SetCursorPos(x, y);
-}
+	if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_PERSONAL | CSIDL_FLAG_CREATE, NULL, 0, wOutPath))) {
+		utf8 *outPathTemp = widechar_to_utf8(wOutPath);
+		safe_strncpy(_userDataDirectoryPath, outPathTemp, sizeof(_userDataDirectoryPath));
+		free(outPathTemp);
 
-unsigned int platform_get_ticks()
-{
-	return GetTickCount();
+		strcat(_userDataDirectoryPath, separator);
+		strcat(_userDataDirectoryPath, "OpenRCT2");
+		strcat(_userDataDirectoryPath, separator);
+	} else {
+		log_fatal("Unable to resolve user data path.");
+		exit(-1);
+	}
 }
 
 void platform_get_user_directory(utf8 *outPath, const utf8 *subDirectory)
 {
-	wchar_t wOutPath[MAX_PATH];
-	char separator[2] = { platform_get_path_separator(), 0 };
+	const char separator[2] = { platform_get_path_separator(), 0 };
 
-	if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_PERSONAL | CSIDL_FLAG_CREATE, NULL, 0, wOutPath))) {
-		utf8 *outPathTemp = widechar_to_utf8(wOutPath);
-		strcpy(outPath, outPathTemp);
-		free(outPathTemp);
-
+	strcpy(outPath, _userDataDirectoryPath);
+	if (subDirectory != NULL && subDirectory[0] != 0) {
+		strcat(outPath, subDirectory);
 		strcat(outPath, separator);
-		strcat(outPath, "OpenRCT2");
-		strcat(outPath, separator);
-		if (subDirectory != NULL && subDirectory[0] != 0) {
-			strcat(outPath, subDirectory);
-			strcat(outPath, separator);
-		}
-	} else {
-		outPath[0] = 0;
 	}
 }
 
@@ -613,91 +663,6 @@ HWND windows_get_window_handle()
 	return result;
 }
 
-/**
- * http://alter.org.ua/en/docs/win/args/
- */
-PCHAR *CommandLineToArgvA(PCHAR CmdLine, int *_argc)
-{
-	PCHAR* argv;
-	PCHAR  _argv;
-	ULONG   len;
-	ULONG   argc;
-	CHAR   a;
-	ULONG   i, j;
-
-	BOOLEAN  in_QM;
-	BOOLEAN  in_TEXT;
-	BOOLEAN  in_SPACE;
-
-	len = strlen(CmdLine);
-	i = ((len + 2) / 2)*sizeof(PVOID) + sizeof(PVOID);
-
-	argv = (PCHAR*)GlobalAlloc(GMEM_FIXED,
-		i + (len + 2)*sizeof(CHAR) + 1);
-
-	_argv = (PCHAR)(((PUCHAR)argv) + i);
-
-	// Add in virtual 1st command line argument, process path, for arg_parse's sake.
-	argv[0] = 0;
-	argc = 1;
-	argv[argc] = _argv;
-	in_QM = FALSE;
-	in_TEXT = FALSE;
-	in_SPACE = TRUE;
-	i = 0;
-	j = 0;
-
-	while (a = CmdLine[i]) {
-		if (in_QM) {
-			if (a == '\"') {
-				in_QM = FALSE;
-			} else {
-				_argv[j] = a;
-				j++;
-			}
-		} else {
-			switch (a) {
-			case '\"':
-				in_QM = TRUE;
-				in_TEXT = TRUE;
-				if (in_SPACE) {
-					argv[argc] = _argv + j;
-					argc++;
-				}
-				in_SPACE = FALSE;
-				break;
-			case ' ':
-			case '\t':
-			case '\n':
-			case '\r':
-				if (in_TEXT) {
-					_argv[j] = '\0';
-					j++;
-				}
-				in_TEXT = FALSE;
-				in_SPACE = TRUE;
-				break;
-			default:
-				in_TEXT = TRUE;
-				if (in_SPACE) {
-					argv[argc] = _argv + j;
-					argc++;
-				}
-				_argv[j] = a;
-				j++;
-				in_SPACE = FALSE;
-				break;
-			}
-		}
-		i++;
-	}
-	_argv[j] = '\0';
-	argv[argc] = NULL;
-
-	(*_argc) = argc;
-	return argv;
-}
-
 uint16 platform_get_locale_language()
 {
 	CHAR langCode[4];
@@ -818,15 +783,15 @@ uint8 platform_get_locale_measurement_format()
 		(LPSTR)&measurement_system,
 		sizeof(measurement_system)) == 0
 	) {
-		return MEASUREMENT_FORMAT_IMPERIAL;
+		return MEASUREMENT_FORMAT_METRIC;
 	}
 
 	switch (measurement_system) {
-	case 0:
-		return MEASUREMENT_FORMAT_METRIC;
 	case 1:
-	default:
 		return MEASUREMENT_FORMAT_IMPERIAL;
+	case 0:
+	default:
+		return MEASUREMENT_FORMAT_METRIC;
 	}
 }
 
@@ -849,5 +814,41 @@ uint8 platform_get_locale_temperature_format()
 	default:
 		return TEMPERATURE_FORMAT_C;
 	}
+}
+
+bool platform_check_steam_overlay_attached()
+{
+	return GetModuleHandle("GameOverlayRenderer.dll") != NULL;
+}
+
+char *strndup(const char *src, size_t size)
+{
+	size_t len = strnlen(src, size);
+	char *dst = (char *)malloc(len + 1);
+
+	if (dst == NULL)
+	{
+		return NULL;
+	}
+
+	dst = memcpy(dst, src, len);
+	dst[len] = '\0';
+	return (char *)dst;
+}
+
+void platform_get_exe_path(utf8 *outPath)
+{
+	wchar_t exePath[MAX_PATH];
+	wchar_t tempPath[MAX_PATH];
+	wchar_t *exeDelimiter;
+	int exeDelimiterIndex;
+
+	GetModuleFileNameW(NULL, exePath, MAX_PATH);
+	exeDelimiter = wcsrchr(exePath, platform_get_path_separator());
+	exeDelimiterIndex = (int)(exeDelimiter - exePath);
+	lstrcpynW(tempPath, exePath, exeDelimiterIndex + 1);
+	tempPath[exeDelimiterIndex] = L'\0';
+	_wfullpath(exePath, tempPath, MAX_PATH);
+	WideCharToMultiByte(CP_UTF8, 0, exePath, countof(exePath), outPath, MAX_PATH, NULL, NULL);
 }
 #endif

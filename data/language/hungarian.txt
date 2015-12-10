@@ -2221,7 +2221,7 @@ STR_2213    :{SMALLFONT}{BLACK}Show list of entertainers in park
 STR_2214    :Construction not possible while game is paused!
 STR_2215    :{STRINGID}{NEWLINE}({STRINGID})
 STR_2216    :{WINDOW_COLOUR_2}{COMMA16}{DEGREE}C
-STR_2217    :{WINDOW_COLOUR_2}{COMMA16}F
+STR_2217    :{WINDOW_COLOUR_2}{COMMA16}{DEGREE}F
 STR_2218    :{RED}{STRINGID} on {STRINGID} hasn't returned to the {STRINGID} yet!{NEWLINE}Check whether it is stuck or has stalled
 STR_2219    :{RED}{COMMA16} people have died in an accident on {STRINGID}
 STR_2220    :{WINDOW_COLOUR_2}Park Rating: {BLACK}{COMMA16}
@@ -2371,7 +2371,7 @@ STR_2363    :Gridlines on Landscape
 STR_2364    :{SMALLFONT}{BLACK}Toggle gridlines on landscape on/off
 STR_2365    :The bank refuses to increase your loan!
 STR_2366    :Celsius ({DEGREE}C)
-STR_2367    :Fahrenheit (F)
+STR_2367    :Fahrenheit ({DEGREE}F)
 STR_2368    :None
 STR_2369    :Low
 STR_2370    :Average
@@ -2705,12 +2705,12 @@ STR_2697    :???
 STR_2698    :???
 STR_2699    :???
 STR_2700    :Autosave frequency:
-STR_2701    :Every week
-STR_2702    :Every 2 weeks
-STR_2703    :Every month
-STR_2704    :Every 4 months
-STR_2705    :Every year
-STR_2706    :Never
+STR_2701    :Minden percben
+STR_2702    :Minden 5 percben
+STR_2703    :Minden 15 percben
+STR_2704    :Minden 30 percben
+STR_2705    :Minden órában
+STR_2706    :Soha
 STR_2707    :Open new window
 STR_2708    :{WINDOW_COLOUR_1}Are you sure you want to overwrite {STRINGID}?
 STR_2709    :Overwrite

@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -63,7 +63,7 @@ typedef struct {
 	uint8 station_depart[4];
 	uint16 entrance[4];
 	uint16 exit[4];
-	uint16 first_peep_in_queue[4];
+	uint16 last_peep_in_queue[4];
 	uint8 num_peeps_in_queue[4];
 	uint16 vehicles[12];
 	uint8 depart_flags;
@@ -92,7 +92,7 @@ typedef struct {
 	uint8 unk_B2[18];
 	union {
 		uint8 num_inversions;
-		uint8 num_holes;	
+		uint8 num_holes;
 	};
 	uint8 num_drops;
 	uint8 unk_C6;
@@ -502,7 +502,6 @@ enum {
 
 extern const uint8 RCT1ColourConversionTable[32];
 
-char **gVehicleHierarchies[0x60];
 const uint8 gRideCategories[0x60];
 
 bool rct1_read_sc4(const char *path, rct1_s4 *s4);

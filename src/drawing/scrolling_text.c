@@ -1,5 +1,6 @@
 #include "../addresses.h"
 #include "../config.h"
+#include "../interface/colour.h"
 #include "../localisation/localisation.h"
 #include "drawing.h"
 
@@ -24,7 +25,7 @@ void scrolling_text_initialise_bitmaps()
 {
 	uint8 drawingSurface[64];
 	rct_drawpixelinfo dpi = {
-		.bits = (char*)&drawingSurface,
+		.bits = (uint8 *)&drawingSurface,
 		.x = 0,
 		.y = 0,
 		.width = 8,
@@ -33,7 +34,7 @@ void scrolling_text_initialise_bitmaps()
 		.zoom_level = 0
 	};
 
-	
+
 	for (int i = 0; i < 224; i++) {
 		memset(drawingSurface, 0, sizeof(drawingSurface));
 		gfx_draw_sprite(&dpi, i + 0x10D5, -1, 0, 0);
@@ -88,10 +89,12 @@ static int scrolling_text_get_matching_or_oldest(rct_string_id stringId, uint16 
 
 static uint8 scrolling_text_get_colour(uint32 character)
 {
-	int edi = character & 0x7F;
-	int offset = 0;
-	if (character >= 0x80) offset = 2;
-	return RCT2_ADDRESS(0x0141FC47, uint8)[offset + (edi * 8)];
+	int colour = character & 0x7F;
+	if (colour & (1 << 7)) {
+		return ColourMapA[colour].light;
+	} else {
+		return ColourMapA[colour].mid_dark;
+	}
 }
 
 static void scrolling_text_format(utf8 *dst, rct_draw_scroll_text *scrollText)
@@ -135,8 +138,8 @@ int scrolling_text_setup(rct_string_id stringId, uint16 scroll, uint16 scrolling
 	utf8 scrollString[256];
 	scrolling_text_format(scrollString, scrollText);
 
-	sint16* scrollingModePositions = RCT2_ADDRESS(RCT2_ADDRESS_SCROLLING_MODE_POSITIONS, uint16*)[scrollingMode];
-	
+	sint16* scrollingModePositions = RCT2_ADDRESS(RCT2_ADDRESS_SCROLLING_MODE_POSITIONS, sint16*)[scrollingMode];
+
 	memset(scrollText->bitmap, 0, 320 * 8);
 	if (gUseTrueTypeFont) {
 		scrolling_text_set_bitmap_for_ttf(scrollString, scroll, scrollText->bitmap, scrollingModePositions);
@@ -186,8 +189,8 @@ void scrolling_text_set_bitmap_for_sprite(utf8 *text, int scroll, uint8 *bitmap,
 				uint8 *dst = &bitmap[scrollPosition];
 				for (uint8 char_bitmap = *characterBitmap; char_bitmap != 0; char_bitmap >>= 1){
 					if (char_bitmap & 1) *dst = characterColour;
-					
-					// Jump to next row 
+
+					// Jump to next row
 					dst += 64;
 				}
 			}
@@ -261,7 +264,7 @@ void scrolling_text_set_bitmap_for_ttf(utf8 *text, int scroll, uint8 *bitmap, si
 				for (int y = 0; y < height; y++) {
 					if (src[y * pitch + x] != 0) *dst = colour;
 
-					// Jump to next row 
+					// Jump to next row
 					dst += 64;
 				}
 			}

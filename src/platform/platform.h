@@ -46,6 +46,19 @@ typedef struct {
 } file_info;
 
 typedef struct {
+	sint16 day;
+	sint16 month;
+	sint16 year;
+	sint16 day_of_week;
+} rct2_date;
+
+typedef struct {
+	sint16 hour;
+	sint16 minute;
+	sint16 second;
+} rct2_time;
+
+typedef struct {
 	int x, y;
 	unsigned char left, middle, right, any;
 	int wheel;
@@ -77,13 +90,18 @@ extern int gNumResolutions;
 extern resolution *gResolutions;
 extern SDL_Window *gWindow;
 
+extern bool gHardwareDisplay;
+
+extern bool gSteamOverlayActive;
+
 // Platform shared definitions
 void platform_update_fullscreen_resolutions();
 void platform_get_closest_resolution(int inWidth, int inHeight, int *outWidth, int *outHeight);
 void platform_init();
 void platform_draw();
 void platform_free();
-void platform_update_palette(char *colours, int start_index, int num_colours);
+void platform_trigger_resize();
+void platform_update_palette(const uint8 *colours, int start_index, int num_colours);
 void platform_set_fullscreen_mode(int mode);
 void platform_set_cursor(char cursor);
 void platform_refresh_video();
@@ -91,8 +109,11 @@ void platform_process_messages();
 int platform_scancode_to_rct_keycode(int sdl_key);
 void platform_start_text_input(utf8 *buffer, int max_length);
 void platform_stop_text_input();
+void platform_get_date(rct2_date *out_date);
+void platform_get_time(rct2_time *out_time);
 
 // Platform specific definitions
+void platform_get_exe_path(utf8 *outPath);
 char platform_get_path_separator();
 bool platform_file_exists(const utf8 *path);
 bool platform_directory_exists(const utf8 *path);
@@ -119,6 +140,7 @@ void platform_show_cursor();
 void platform_get_cursor_position(int *x, int *y);
 void platform_set_cursor_position(int x, int y);
 unsigned int platform_get_ticks();
+void platform_resolve_user_data_path();
 void platform_get_user_directory(utf8 *outPath, const utf8 *subDirectory);
 void platform_show_messagebox(utf8 *message);
 int platform_open_common_file_dialog(int type, utf8 *title, utf8 *filename, utf8 *filterPattern, utf8 *filterName);
@@ -128,9 +150,15 @@ uint16 platform_get_locale_language();
 uint8 platform_get_locale_measurement_format();
 uint8 platform_get_locale_temperature_format();
 
+bool platform_check_steam_overlay_attached();
+
+// BSD and OS X has MAP_ANON instead of MAP_ANONYMOUS
+#ifndef MAP_ANONYMOUS
+	#define MAP_ANONYMOUS MAP_ANON
+#endif
+
 // Windows specific definitions
 #ifdef _WIN32
-	// Defining WIN32_LEAN_AND_MEAN breaks dsound.h in audio.h (uncomment when dsound is finally removed)
 	#ifndef WIN32_LEAN_AND_MEAN
 		#define WIN32_LEAN_AND_MEAN
 	#endif
@@ -140,9 +168,8 @@ uint8 platform_get_locale_temperature_format();
 	HWND windows_get_window_handle();
 #endif // _WIN32
 
-#ifdef __linux__
+#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
 #include <unistd.h>
-#include <limits.h>
 #define STUB() log_warning("Function %s at %s:%d is a stub.\n", __PRETTY_FUNCTION__, __FILE__, __LINE__)
 #define _strcmpi _stricmp
 #define _stricmp(x, y) strcasecmp((x), (y))
@@ -159,6 +186,10 @@ uint8 platform_get_locale_temperature_format();
 #error Unknown endianess!
 #endif // RCT2_ENDIANESS
 
-#endif // __linux__
+#endif // defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
+
+#if !(_POSIX_C_SOURCE >= 200809L || _XOPEN_SOURCE >= 700)
+	char *strndup(const char *src, size_t size);
+#endif // !(POSIX_C_SOURCE >= 200809L || _XOPEN_SOURCE >= 700)
 
 #endif

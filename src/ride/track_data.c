@@ -20,6 +20,7 @@
 
 #include "track.h"
 #include "track_data.h"
+#include "track_paint.h"
 
 const rct_track_coordinates* FlatTrackCoordinates = RCT2_ADDRESS(0x009972BB, const rct_track_coordinates);
 
@@ -4878,75 +4879,75 @@ const uint8 TrackPieceLengths[256] = {
 	100,	// TRACK_ELEM_RIGHT_LARGE_HALF_LOOP_UP
 	100,	// TRACK_ELEM_RIGHT_LARGE_HALF_LOOP_DOWN
 	100,	// TRACK_ELEM_LEFT_LARGE_HALF_LOOP_DOWN
-	96,		// 
-	96,		// 
-	96,		// 
-	96,		// 
-	64,		// 
-	64,		// 
-	64,		// 
-	64,		// 
-	64,		// 
-	64,		// 
-	16,		// 
-	16,		// 
-	64,		// 
-	64,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	80,		// 
-	80,		// 
-	80,		// 
-	64,		// 
-	64,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	32,		// 
-	80,		// 
-	80,		// 
-	80,		// 
+	96,		//
+	96,		//
+	96,		//
+	96,		//
+	64,		//
+	64,		//
+	64,		//
+	64,		//
+	64,		//
+	64,		//
+	16,		//
+	16,		//
+	64,		//
+	64,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	80,		//
+	80,		//
+	80,		//
+	64,		//
+	64,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	32,		//
+	80,		//
+	80,		//
+	80,		//
 };
 
 // rct2: 0x00998C95
@@ -5133,7 +5134,7 @@ const track_curve_chain gTrackCurveChain[256] = {
 	{ 4, 4 },
 	{ 3, 3 },
 	{ 4, 4 },
-	{ 438, 190 },
+	{ 438, 438 },
 	{ 442, 0 },
 	{ 441, 0 },
 	{ 0, 440 },
@@ -5469,7 +5470,7 @@ const track_curve_chain gFlatRideTrackCurveChain[256] = {
 	{ 0, 57088 },
 };
 
-const uint32 RideTypeTrackPaintFunctions[91] = {
+const uint32 RideTypeTrackPaintFunctionsOld[91] = {
 	0x008A42F4,						// RIDE_TYPE_SPIRAL_ROLLER_COASTER
 	0x008A6DB0,						// RIDE_TYPE_STAND_UP_ROLLER_COASTER
 	0x008A85E4,						// RIDE_TYPE_SUSPENDED_SWINGING_COASTER
@@ -5498,24 +5499,24 @@ const uint32 RideTypeTrackPaintFunctions[91] = {
 	0x0075C9D0,						// RIDE_TYPE_DODGEMS
 	0x008A83E0,						// RIDE_TYPE_PIRATE_SHIP
 	0x00760070,						// RIDE_TYPE_SWINGING_INVERTER_SHIP
-	0x00761160,						// RIDE_TYPE_FOOD_STALL
-	0x00761160,						// RIDE_TYPE_1D
-	0x00761160,						// RIDE_TYPE_DRINK_STALL
-	0x00761160,						// RIDE_TYPE_1F
-	0x00761160,						// RIDE_TYPE_SHOP
+	0,						// RIDE_TYPE_FOOD_STALL
+	0,						// RIDE_TYPE_1D
+	0,						// RIDE_TYPE_DRINK_STALL
+	0,						// RIDE_TYPE_1F
+	0,						// RIDE_TYPE_SHOP
 	0x0076190C,						// RIDE_TYPE_MERRY_GO_ROUND
-	0x00761160,						// RIDE_TYPE_22
-	0x00761160,						// RIDE_TYPE_INFORMATION_KIOSK
+	0,						// RIDE_TYPE_22
+	0,						// RIDE_TYPE_INFORMATION_KIOSK
 	0x00762D44,						// RIDE_TYPE_TOILETS
 	0x008A8CC8,						// RIDE_TYPE_FERRIS_WHEEL
 	0x00763520,						// RIDE_TYPE_MOTION_SIMULATOR
 	0x0076554C,						// RIDE_TYPE_3D_CINEMA
-	0x0076659C,						// RIDE_TYPE_TOP_SPIN
+	0,						// RIDE_TYPE_TOP_SPIN
 	0x00767A40,						// RIDE_TYPE_SPACE_RINGS
 	0x00768BAC,						// RIDE_TYPE_REVERSE_FREEFALL_COASTER
 	0x0076C5BC,						// RIDE_TYPE_LIFT
 	0x008A9C08,						// RIDE_TYPE_VERTICAL_DROP_ROLLER_COASTER
-	0x00761160,						// RIDE_TYPE_CASH_MACHINE
+	0,						// RIDE_TYPE_CASH_MACHINE
 	0x0076D658,						// RIDE_TYPE_TWIST
 	0x0076E7B0,						// RIDE_TYPE_HAUNTED_HOUSE
 	0x00762D44,						// RIDE_TYPE_FIRST_AID
@@ -5561,4 +5562,99 @@ const uint32 RideTypeTrackPaintFunctions[91] = {
 	0x008B0610,						// RIDE_TYPE_MINE_RIDE
 	0x00000000,						// RIDE_TYPE_59
 	0x008A5F6C,						// RIDE_TYPE_LIM_LAUNCHED_ROLLER_COASTER
+};
+
+
+const uint32 RideTypeTrackPaintFunctions[91] = {
+	0,						// RIDE_TYPE_SPIRAL_ROLLER_COASTER
+	0,						// RIDE_TYPE_STAND_UP_ROLLER_COASTER
+	0,						// RIDE_TYPE_SUSPENDED_SWINGING_COASTER
+	0,						// RIDE_TYPE_INVERTED_ROLLER_COASTER
+	0,						// RIDE_TYPE_JUNIOR_ROLLER_COASTER
+	0,						// RIDE_TYPE_MINIATURE_RAILWAY
+	0,						// RIDE_TYPE_MONORAIL
+	0,						// RIDE_TYPE_MINI_SUSPENDED_COASTER
+	0,						// RIDE_TYPE_BOAT_RIDE
+	0,						// RIDE_TYPE_WOODEN_WILD_MOUSE
+	0,						// RIDE_TYPE_STEEPLECHASE
+	0,						// RIDE_TYPE_CAR_RIDE
+	0,						// RIDE_TYPE_LAUNCHED_FREEFALL
+	0,						// RIDE_TYPE_BOBSLEIGH_COASTER
+	0,						// RIDE_TYPE_OBSERVATION_TOWER
+	0,						// RIDE_TYPE_LOOPING_ROLLER_COASTER
+	0,						// RIDE_TYPE_DINGHY_SLIDE
+	0,						// RIDE_TYPE_MINE_TRAIN_COASTER
+	0,						// RIDE_TYPE_CHAIRLIFT
+	0,						// RIDE_TYPE_CORKSCREW_ROLLER_COASTER
+	0,						// RIDE_TYPE_MAZE
+	0,						// RIDE_TYPE_SPIRAL_SLIDE
+	0,						// RIDE_TYPE_GO_KARTS
+	0,						// RIDE_TYPE_LOG_FLUME
+	0,						// RIDE_TYPE_RIVER_RAPIDS
+	0,						// RIDE_TYPE_DODGEMS
+	0,						// RIDE_TYPE_PIRATE_SHIP
+	0,						// RIDE_TYPE_SWINGING_INVERTER_SHIP
+	(uint32)shop_track_paint_functions,			// RIDE_TYPE_FOOD_STALL
+	(uint32)shop_track_paint_functions,			// RIDE_TYPE_1D
+	(uint32)shop_track_paint_functions,			// RIDE_TYPE_DRINK_STALL
+	(uint32)shop_track_paint_functions,			// RIDE_TYPE_1F
+	(uint32)shop_track_paint_functions,			// RIDE_TYPE_SHOP
+	0,						// RIDE_TYPE_MERRY_GO_ROUND
+	(uint32)shop_track_paint_functions,			// RIDE_TYPE_22
+	(uint32)shop_track_paint_functions,			// RIDE_TYPE_INFORMATION_KIOSK
+	(uint32)shop_track_paint_functions,			// RIDE_TYPE_TOILETS
+	0,						// RIDE_TYPE_FERRIS_WHEEL
+	0,						// RIDE_TYPE_MOTION_SIMULATOR
+	0,						// RIDE_TYPE_3D_CINEMA
+	(uint32)top_spin_track_paint_functions,		// RIDE_TYPE_TOP_SPIN
+	0,						// RIDE_TYPE_SPACE_RINGS
+	0,						// RIDE_TYPE_REVERSE_FREEFALL_COASTER
+	0,						// RIDE_TYPE_LIFT
+	0,						// RIDE_TYPE_VERTICAL_DROP_ROLLER_COASTER
+	(uint32)shop_track_paint_functions,			// RIDE_TYPE_CASH_MACHINE
+	0,						// RIDE_TYPE_TWIST
+	0,						// RIDE_TYPE_HAUNTED_HOUSE
+	0,						// RIDE_TYPE_FIRST_AID
+	0,						// RIDE_TYPE_CIRCUS_SHOW
+	0,						// RIDE_TYPE_GHOST_TRAIN
+	0,						// RIDE_TYPE_TWISTER_ROLLER_COASTER
+	0,						// RIDE_TYPE_WOODEN_ROLLER_COASTER
+	0,						// RIDE_TYPE_SIDE_FRICTION_ROLLER_COASTER
+	0,						// RIDE_TYPE_WILD_MOUSE
+	0,						// RIDE_TYPE_MULTI_DIMENSION_ROLLER_COASTER
+	0,						// RIDE_TYPE_38
+	0,						// RIDE_TYPE_FLYING_ROLLER_COASTER
+	0,						// RIDE_TYPE_3A
+	0,						// RIDE_TYPE_VIRGINIA_REEL
+	0,						// RIDE_TYPE_SPLASH_BOATS
+	0,						// RIDE_TYPE_MINI_HELICOPTERS
+	0,						// RIDE_TYPE_LAY_DOWN_ROLLER_COASTER
+	0,						// RIDE_TYPE_SUSPENDED_MONORAIL
+	0,						// RIDE_TYPE_40
+	0,						// RIDE_TYPE_REVERSER_ROLLER_COASTER
+	0,						// RIDE_TYPE_HEARTLINE_TWISTER_COASTER
+	0,						// RIDE_TYPE_MINI_GOLF
+	0,						// RIDE_TYPE_GIGA_COASTER
+	0,						// RIDE_TYPE_ROTO_DROP
+	0,						// RIDE_TYPE_FLYING_SAUCERS
+	0,						// RIDE_TYPE_CROOKED_HOUSE
+	0,						// RIDE_TYPE_MONORAIL_CYCLES
+	0,						// RIDE_TYPE_COMPACT_INVERTED_COASTER
+	0,						// RIDE_TYPE_WATER_COASTER
+	0,						// RIDE_TYPE_AIR_POWERED_VERTICAL_COASTER
+	0,						// RIDE_TYPE_INVERTED_HAIRPIN_COASTER
+	0,						// RIDE_TYPE_MAGIC_CARPET
+	0,						// RIDE_TYPE_SUBMARINE_RIDE
+	0,						// RIDE_TYPE_RIVER_RAFTS
+	0,						// RIDE_TYPE_50
+	0,						// RIDE_TYPE_ENTERPRISE
+	0,						// RIDE_TYPE_52
+	0,						// RIDE_TYPE_53
+	0,						// RIDE_TYPE_54
+	0,						// RIDE_TYPE_55
+	0,						// RIDE_TYPE_INVERTED_IMPULSE_COASTER
+	0,						// RIDE_TYPE_MINI_ROLLER_COASTER
+	0,						// RIDE_TYPE_MINE_RIDE
+	0,						// RIDE_TYPE_59
+	0,						// RIDE_TYPE_LIM_LAUNCHED_ROLLER_COASTER
 };

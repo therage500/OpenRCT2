@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -31,6 +31,25 @@ enum {
 	NETWORK_PLAYER_FLAG_ISSERVER = 1 << 0,
 };
 
+enum {
+	NETWORK_AUTH_NONE,
+	NETWORK_AUTH_REQUESTED,
+	NETWORK_AUTH_OK,
+	NETWORK_AUTH_BADVERSION,
+	NETWORK_AUTH_BADNAME,
+	NETWORK_AUTH_BADPASSWORD,
+	NETWORK_AUTH_FULL,
+	NETWORK_AUTH_REQUIREPASSWORD
+};
+
+enum {
+	NETWORK_STATUS_NONE,
+	NETWORK_STATUS_READY,
+	NETWORK_STATUS_RESOLVING,
+	NETWORK_STATUS_CONNECTING,
+	NETWORK_STATUS_CONNECTED
+};
+
 #define NETWORK_DEFAULT_PORT 11753
 
 #ifdef __cplusplus
@@ -45,23 +64,38 @@ extern "C" {
 #ifndef DISABLE_NETWORK
 
 #ifdef _WIN32
-#include <winsock2.h>
+	#include <winsock2.h>
+	#include <ws2tcpip.h>
+	#define LAST_SOCKET_ERROR() WSAGetLastError()
+	#undef EWOULDBLOCK
+	#define EWOULDBLOCK WSAEWOULDBLOCK
+	#ifndef SHUT_RD
+		#define SHUT_RD SD_RECEIVE
+	#endif
+	#ifndef SHUT_RDWR
+		#define SHUT_RDWR SD_BOTH
+	#endif
+#else
+	#include <errno.h>
+	#include <arpa/inet.h>
+	#include <netdb.h>
+	#include <netinet/tcp.h>
+	#include <sys/socket.h>
+	#include <fcntl.h>
+	typedef int SOCKET;
+	#define SOCKET_ERROR -1
+	#define INVALID_SOCKET -1
+	#define LAST_SOCKET_ERROR() errno
+	#define closesocket close
+	#define ioctlsocket ioctl
 #endif // _WIN32
-
-enum {
-	NETWORK_AUTH_NONE,
-	NETWORK_AUTH_REQUESTED,
-	NETWORK_AUTH_OK,
-	NETWORK_AUTH_BADVERSION,
-	NETWORK_AUTH_BADNAME,
-	NETWORK_AUTH_BADPASSWORD
-};
 
 #ifdef __cplusplus
 
 #include <list>
 #include <set>
 #include <memory>
+#include <string>
 #include <vector>
 #include <SDL.h>
 
@@ -83,6 +117,7 @@ public:
 	static std::unique_ptr<NetworkPacket> Allocate();
 	static std::unique_ptr<NetworkPacket> Duplicate(NetworkPacket& packet);
 	uint8* GetData();
+	uint32 GetCommand();
 	template <typename T>
 	NetworkPacket& operator<<(T value) { T swapped = ByteSwapBE(value); uint8* bytes = (uint8*)&swapped; data->insert(data->end(), bytes, bytes + sizeof(value)); return *this; }
 	void Write(uint8* bytes, unsigned int size);
@@ -92,6 +127,7 @@ public:
 	const uint8* Read(unsigned int size);
 	const char* ReadString();
 	void Clear();
+	bool CommandRequiresAuth();
 
 	uint16 size;
 	std::shared_ptr<std::vector<uint8>> data;
@@ -113,20 +149,54 @@ class NetworkConnection
 {
 public:
 	NetworkConnection();
+	~NetworkConnection();
 	int ReadPacket();
-	void QueuePacket(std::unique_ptr<NetworkPacket> packet);
+	void QueuePacket(std::unique_ptr<NetworkPacket> packet, bool front = false);
 	void SendQueuedPackets();
 	bool SetTCPNoDelay(bool on);
+	bool SetNonBlocking(bool on);
+	static bool SetNonBlocking(SOCKET socket, bool on);
+	void ResetLastPacketTime();
+	bool ReceivedPacketRecently();
 
 	SOCKET socket;
 	NetworkPacket inboundpacket;
 	int authstatus;
 	NetworkPlayer* player;
 	uint32 ping_time;
+	const char* last_disconnect_reason;
 
 private:
 	bool SendPacket(NetworkPacket& packet);
 	std::list<std::unique_ptr<NetworkPacket>> outboundpackets;
+	uint32 last_packet_time;
+};
+
+class NetworkAddress
+{
+public:
+	NetworkAddress();
+	void Resolve(const char* host, unsigned short port, bool nonblocking = true);
+	int GetResolveStatus(void);
+
+	std::shared_ptr<sockaddr_storage> ss;
+	std::shared_ptr<int> ss_len;
+
+	enum {
+		RESOLVE_NONE,
+		RESOLVE_INPROGRESS,
+		RESOLVE_OK,
+		RESOLVE_FAILED
+	};
+
+private:
+	static int ResolveFunc(void* pointer);
+
+	const char* host;
+	unsigned short port;
+	SDL_mutex* mutex;
+	SDL_cond* cond;
+	std::shared_ptr<int> status;
 };
 
 class Network
@@ -137,18 +207,25 @@ public:
 	bool Init();
 	void Close();
 	bool BeginClient(const char* host, unsigned short port);
-	bool BeginServer(unsigned short port);
+	bool BeginServer(unsigned short port, const char* address = NULL);
 	int GetMode();
+	int GetStatus();
 	int GetAuthStatus();
 	uint32 GetServerTick();
 	uint8 GetPlayerID();
 	void Update();
 	NetworkPlayer* GetPlayerByID(int id);
 	const char* FormatChat(NetworkPlayer* fromplayer, const char* text);
-	void SendPacketToClients(NetworkPacket& packet);
+	void SendPacketToClients(NetworkPacket& packet, bool front = false);
 	bool CheckSRAND(uint32 tick, uint32 srand0);
+	void KickPlayer(int playerId);
+	void SetPassword(const char* password);
+	void ShutdownClient();
+	void AdvertiseRegister();
+	void AdvertiseHeartbeat();
 
-	void Client_Send_AUTH(const char* gameversion, const char* name, const char* password);
+	void Client_Send_AUTH(const char* name, const char* password);
+	void Server_Send_AUTH(NetworkConnection& connection);
 	void Server_Send_MAP(NetworkConnection* connection = nullptr);
 	void Client_Send_CHAT(const char* text);
 	void Server_Send_CHAT(const char* text);
@@ -159,6 +236,8 @@ public:
 	void Client_Send_PING();
 	void Server_Send_PING();
 	void Server_Send_PINGLIST();
+	void Server_Send_SETDISCONNECTMSG(NetworkConnection& connection, const char* msg);
+	void Server_Send_GAMEINFO(NetworkConnection& connection);
 
 	std::vector<std::unique_ptr<NetworkPlayer>> player_list;
 
@@ -170,6 +249,8 @@ private:
 	void RemoveClient(std::unique_ptr<NetworkConnection>& connection);
 	NetworkPlayer* AddPlayer(const char* name);
 	void PrintError();
+	const char *GetMasterServerUrl();
+	std::string GenerateAdvertiseKey();
 
 	struct GameCommand
 	{
@@ -184,9 +265,11 @@ private:
 	};
 
 	int mode;
+	int status;
+	NetworkAddress server_address;
 	bool wsa_initialized;
-	SOCKET server_socket;
 	SOCKET listening_socket;
+	unsigned short listening_port;
 	NetworkConnection server_connection;
 	uint32 last_tick_sent_time;
 	uint32 last_ping_sent_time;
@@ -197,8 +280,14 @@ private:
 	std::list<std::unique_ptr<NetworkConnection>> client_connection_list;
 	std::multiset<GameCommand> game_command_queue;
 	std::vector<uint8> chunk_buffer;
-	char password[33];
+	std::string password;
 	bool _desynchronised;
+	uint32 server_connect_time;
+	uint32 last_advertise_time;
+	std::string advertise_token;
+	std::string advertise_key;
+	int advertise_status;
+	uint32 last_heartbeat_time;
 
 	void UpdateServer();
 	void UpdateClient();
@@ -218,6 +307,8 @@ private:
 	int Client_Handle_PING(NetworkConnection& connection, NetworkPacket& packet);
 	int Server_Handle_PING(NetworkConnection& connection, NetworkPacket& packet);
 	int Client_Handle_PINGLIST(NetworkConnection& connection, NetworkPacket& packet);
+	int Client_Handle_SETDISCONNECTMSG(NetworkConnection& connection, NetworkPacket& packet);
+	int Server_Handle_GAMEINFO(NetworkConnection& connection, NetworkPacket& packet);
 };
 
 #endif // __cplusplus
@@ -228,25 +319,31 @@ extern "C" {
 #endif // __cplusplus
 int network_init();
 void network_close();
+void network_shutdown_client();
 int network_begin_client(const char *host, int port);
 int network_begin_server(int port);
 
 int network_get_mode();
+int network_get_status();
 void network_update();
 int network_get_authstatus();
 uint32 network_get_server_tick();
-uint8 network_get_player_id();
+uint8 network_get_current_player_id();
 int network_get_num_players();
 const char* network_get_player_name(unsigned int index);
 uint32 network_get_player_flags(unsigned int index);
 int network_get_player_ping(unsigned int index);
+int network_get_player_id(unsigned int index);
 
 void network_send_map();
 void network_send_chat(const char* text);
 void network_send_gamecmd(uint32 eax, uint32 ebx, uint32 ecx, uint32 edx, uint32 esi, uint32 edi, uint32 ebp, uint8 callback);
+void network_send_password(const char* password);
+
+void network_kick_player(int playerId);
+void network_set_password(const char* password);
 
 void network_print_error();
-static char *network_getAddress(char *host);
 
 #ifdef __cplusplus
 }

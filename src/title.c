@@ -33,6 +33,7 @@
 #include "intro.h"
 #include "management/news_item.h"
 #include "management/research.h"
+#include "network/network.h"
 #include "openrct2.h"
 #include "peep/staff.h"
 #include "ride/ride.h"
@@ -52,6 +53,7 @@ sint32 gTitleScriptCommand = -1;
 uint8 gTitleScriptSave = 0xFF;
 sint32 gTitleScriptSkipTo = -1;
 sint32 gTitleScriptSkipLoad = -1;
+rct_xy16 _titleScriptCurrentCentralPosition = { -1, -1 };
 
 #pragma region Showcase script
 
@@ -78,6 +80,7 @@ static const uint8 _magicMountainScript[] = {
 
 static uint8* _loadedScript;
 static const uint8* _currentScript;
+static uint8 _lastOpcode;
 static int _scriptNoLoadsSinceRestart;
 static int _scriptWaitCounter;
 static int _scriptCurrentPreset;
@@ -122,15 +125,18 @@ void title_load()
 	window_staff_list_init_vars();
 	map_update_tile_pointers();
 	reset_0x69EBE4();
-	stop_ride_music();
-	stop_crowd_sound();
-	stop_other_sounds();
+	audio_stop_ride_music();
+	audio_stop_crowd_sound();
+	//stop_other_sounds();
 	viewport_init_all();
 	news_item_init_queue();
 	title_create_windows();
 	title_init_showcase();
 	gfx_invalidate_screen();
 	RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_AGE, uint16) = 0;
+#ifndef DISABLE_NETWORK
+	network_close();
+#endif
 
 	if (gOpenRCT2ShowChangelog) {
 		gOpenRCT2ShowChangelog = false;
@@ -167,7 +173,7 @@ static void title_init_showcase()
 static int title_load_park(const char *path)
 {
 	rct_window* w;
-	int successfulLoad;
+	int successfulLoad = 0;
 
 	if (_strcmpi(path_get_extension(path), ".sv6") == 0) {
 		SDL_RWops* rw = SDL_RWFromFile(path, "rb");
@@ -218,12 +224,49 @@ static int title_load_park(const char *path)
 	return 1;
 }
 
+/**
+ * Sets the map location to the given tile coordinates. Z is automatic.
+ * @param x X position in map tiles.
+ * @param y Y position in map tiles.
+ */
+static void title_set_location(int x, int y)
+{
+	int z = map_element_height(x, y);
+
+	// Update viewport
+	rct_window* w = window_get_main();
+	if (w != NULL) {
+		window_scroll_to_location(w, x, y, z);
+		w->flags &= ~WF_SCROLLING_TO_LOCATION;
+		viewport_update_position(w);
+	}
+
+	// Save known tile position in case of window resize
+	_titleScriptCurrentCentralPosition.x = (sint16)x;
+	_titleScriptCurrentCentralPosition.y = (sint16)y;
+}
+
+/**
+ * Re-centres the map location to the last scripted tile position.
+ */
+void title_fix_location()
+{
+	if (RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_FLAGS, uint8) == SCREEN_FLAGS_TITLE_DEMO) {
+		rct_xy16 position = _titleScriptCurrentCentralPosition;
+		if (position.x != -1) {
+			title_set_location(position.x, position.y);
+		}
+	}
+}
+
 static void title_skip_opcode()
 {
 	uint8 script_opcode;
 
 	script_opcode = *_currentScript++;
 	gTitleScriptCommand++;
+	_lastOpcode = script_opcode;
+
 	switch (script_opcode) {
 	case TITLE_SCRIPT_WAIT:
 		_currentScript++;
@@ -251,7 +294,7 @@ static void title_skip_opcode()
 static void title_do_next_script_opcode()
 {
 	int i;
-	short x, y, z;
+	short x, y;
 	uint8 script_opcode, script_operand;
 	rct_window* w;
 	gTitleScriptCommand++;
@@ -274,6 +317,9 @@ static void title_do_next_script_opcode()
 			return;
 		}
 	}
+
+	_lastOpcode = script_opcode;
+
 	switch (script_opcode) {
 	case TITLE_SCRIPT_END:
 		_scriptWaitCounter = 1;
@@ -291,15 +337,7 @@ static void title_do_next_script_opcode()
 	case TITLE_SCRIPT_LOCATION:
 		x = (*_currentScript++) * 32 + 16;
 		y = (*_currentScript++) * 32 + 16;
-		z = map_element_height(x, y);
-
-		// Update viewport
-		w = window_get_main();
-		if (w != NULL) {
-			window_scroll_to_location(w, x, y, z);
-			w->flags &= ~WF_SCROLLING_TO_LOCATION;
-			viewport_update_position(w);
-		}
+		title_set_location(x, y);
 		break;
 	case TITLE_SCRIPT_ROTATE:
 		script_operand = (*_currentScript++);
@@ -345,7 +383,7 @@ static void title_do_next_script_opcode()
 
 			// Construct full relative path
 			if (gConfigTitleSequences.presets[_scriptCurrentPreset].path[0]) {
-				strcpy(path, gConfigTitleSequences.presets[_scriptCurrentPreset].path);
+				safe_strncpy(path, gConfigTitleSequences.presets[_scriptCurrentPreset].path, MAX_PATH);
 			}
 			else {
 				platform_get_user_directory(path, "title sequences");
@@ -407,7 +445,7 @@ static void title_update_showcase()
 
 			if (gTitleScriptSkipTo != -1 && gTitleScriptSkipLoad != -1)
 				_scriptWaitCounter = 0;
-			else if (*(_currentScript - 1) != TITLE_SCRIPT_END)
+			else if (_lastOpcode != TITLE_SCRIPT_END)
 				_scriptWaitCounter--;
 		} while (gTitleScriptSkipTo != -1 && gTitleScriptSkipLoad != -1);
 
@@ -428,30 +466,20 @@ static void title_update_showcase()
 
 void DrawOpenRCT2(int x, int y)
 {
-	char buffer[256];
+	utf8 buffer[256];
 	rct_drawpixelinfo *dpi = RCT2_ADDRESS(RCT2_ADDRESS_SCREEN_DPI, rct_drawpixelinfo);
 
 	// Draw background
-	gfx_fill_rect_inset(dpi, x, y, x + 128, y + 20, 0x80 | 12, 0x8);
+	gfx_fill_rect_inset(dpi, x, y, x + 128, y + 20, TRANSLUCENT(COLOUR_DARK_GREEN), 0x8);
 
-	// Format text (name and version)
-	char *ch = buffer;;
+	// Write format codes
+	utf8 *ch = buffer;
 	ch = utf8_write_codepoint(ch, FORMAT_MEDIUMFONT);
 	ch = utf8_write_codepoint(ch, FORMAT_OUTLINE);
 	ch = utf8_write_codepoint(ch, FORMAT_WHITE);
-	strcpy(ch, OPENRCT2_NAME);
-	strcat(buffer, ", v");
-	strcat(buffer, OPENRCT2_VERSION);
 
-	// sprintf(buffer, "%c%c%c%s, v%s", FORMAT_MEDIUMFONT, FORMAT_OUTLINE, FORMAT_WHITE, OPENRCT2_NAME, OPENRCT2_VERSION);
-	if (!str_is_null_or_empty(OPENRCT2_BRANCH))
-		sprintf(strchr(buffer, 0), "-%s", OPENRCT2_BRANCH);
-	if (!str_is_null_or_empty(OPENRCT2_BUILD_NUMBER))
-		sprintf(strchr(buffer, 0), " build %s", OPENRCT2_BUILD_NUMBER);
-	if (!str_is_null_or_empty(OPENRCT2_COMMIT_SHA1_SHORT))
-		sprintf(strchr(buffer, 0), " (%s)", OPENRCT2_COMMIT_SHA1_SHORT);
-	if (!str_is_null_or_empty(OPENRCT2_BUILD_SERVER))
-		sprintf(strchr(buffer, 0), " provided by %s", OPENRCT2_BUILD_SERVER);
+	// Write name and version information
+	openrct2_write_full_version_info(ch, sizeof(buffer) - (ch - buffer));
 
 	// Draw Text
 	gfx_draw_string(dpi, buffer, 0, x + 5, y + 5);
@@ -477,7 +505,7 @@ void title_update()
 		for (i = 0; i < numUpdates; i++) {
 			game_logic_update();
 		}
-		start_title_music();
+		audio_start_title_music();
 	}
 
 	RCT2_GLOBAL(RCT2_ADDRESS_INPUT_FLAGS, uint32) &= ~0x80;
@@ -496,24 +524,24 @@ static uint8 *generate_random_script()
 	int i, j;
 	const int views = 16;
 
-	srand((unsigned int)time(NULL));
+	util_srand((unsigned int)time(NULL));
 
 	uint8 *script = malloc(views * 8 + 2);
 	i = 0;
 	script[i++] = TITLE_SCRIPT_LOAD;
 	for (j = 0; j < views; j++) {
 		script[i++] = TITLE_SCRIPT_LOCATION;
-		script[i++] = 64 + (rand() % 128);
-		script[i++] = 64 + (rand() % 128);
+		script[i++] = 64 + (util_rand() % 128);
+		script[i++] = 64 + (util_rand() % 128);
 
-		int rotationCount = rand() % 4;
+		int rotationCount = util_rand() % 4;
 		if (rotationCount > 0) {
 			script[i++] = TITLE_SCRIPT_ROTATE;
 			script[i++] = rotationCount;
 		}
 
 		script[i++] = TITLE_SCRIPT_WAIT;
-		script[i++] = 8 + (rand() % 6);
+		script[i++] = 8 + (util_rand() % 6);
 	}
 	script[i] = TITLE_SCRIPT_RESTART;
 
@@ -579,11 +607,11 @@ static uint8 *title_script_load()
 	sprintf(path, "%s%c%s", gExePath, platform_get_path_separator(), filePath);
 	log_verbose("loading title script, %s", path);
 	file = SDL_RWFromFile(path, "r");
-	sint64 fileSize = SDL_RWsize(file);
 	if (file == NULL) {
 		log_error("unable to load title script");
 		return NULL;
 	}
+	sint64 fileSize = SDL_RWsize(file);
 
 	uint8 *binaryScript = (uint8*)malloc(1024 * 8);
 	if (binaryScript == NULL) {
@@ -624,7 +652,8 @@ static uint8 *title_script_load()
 				*scriptPtr++ = atoi(part1) & 0xFF;
 			} else {
 				log_error("unknown token, %s", token);
-				free(binaryScript);
+				SafeFree(binaryScript);
+				SDL_RWclose(file);
 				return NULL;
 			}
 		}
@@ -672,7 +701,8 @@ bool title_refresh_sequence()
 		}
 	}
 	if (hasLoad && (hasWait || !hasRestart) && !hasInvalidSave) {
-		uint8 *src, *scriptPtr, *binaryScript;
+		char *src;
+		uint8 *scriptPtr, *binaryScript;
 		binaryScript = malloc(1024 * 8);
 		scriptPtr = binaryScript;
 

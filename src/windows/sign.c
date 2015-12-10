@@ -153,7 +153,7 @@ void window_sign_open(rct_windownumber number)
 	if (w != NULL)
 		return;
 
-	w = window_create_auto_pos(WW, WH, &window_sign_events, WC_BANNER, WF_2);
+	w = window_create_auto_pos(WW, WH, &window_sign_events, WC_BANNER, WF_NO_SCROLLING);
 	w->widgets = window_sign_widgets;
 	w->enabled_widgets =
 		(1 << WIDX_CLOSE) |
@@ -248,8 +248,8 @@ static void window_sign_mouseup(rct_window *w, int widgetIndex)
 			1 | ((map_element->type&0x3) << 8),
 			y,
 			map_element->base_height | ((map_element->properties.scenerymultiple.type >> 10) << 8),
-			GAME_COMMAND_REMOVE_LARGE_SCENERY, 
-			0, 
+			GAME_COMMAND_REMOVE_LARGE_SCENERY,
+			0,
 			0);
 		break;
 	case WIDX_SIGN_TEXT:
@@ -270,8 +270,6 @@ static void window_sign_mouseup(rct_window *w, int widgetIndex)
 /* rct2: 0x6B9784 & 0x6E6164 */
 static void window_sign_mousedown(int widgetIndex, rct_window*w, rct_widget* widget)
 {
-	rct_banner* banner = &gBanners[w->number];
-
 	switch (widgetIndex) {
 	case WIDX_MAIN_COLOR:
 		window_dropdown_show_colour(w, widget, w->colours[1] | 0x80, (uint8)w->list_information_type);
@@ -289,66 +287,27 @@ static void window_sign_dropdown(rct_window *w, int widgetIndex, int dropdownInd
 	case WIDX_MAIN_COLOR:
 		if (dropdownIndex == -1) return;
 		w->list_information_type = dropdownIndex;
+		game_do_command(1, GAME_COMMAND_FLAG_APPLY, w->number, dropdownIndex, GAME_COMMAND_SET_SIGN_STYLE, w->var_492, 1);
 		break;
 	case WIDX_TEXT_COLOR:
 		if (dropdownIndex == -1) return;
 		w->var_492 = dropdownIndex;
+		game_do_command(1, GAME_COMMAND_FLAG_APPLY, w->number, w->list_information_type, GAME_COMMAND_SET_SIGN_STYLE, dropdownIndex, 1);
 		break;
 	default:
 		return;
 	}
 
-	rct_banner *banner = &gBanners[w->number];
-	rct_map_element *mapElement = banner_get_map_element(w->number);
-	if (mapElement == NULL || map_element_get_type(mapElement) != MAP_ELEMENT_TYPE_SCENERY_MULTIPLE)
-		return;
-
-	sign_set_colour(
-		banner->x * 32,
-		banner->y * 32,
-		mapElement->base_height,
-		mapElement->type & 3,
-		mapElement->properties.scenerymultiple.type >> 10,
-		w->list_information_type & 0xFF,
-		w->var_492 & 0xFF
-	);
 	window_invalidate(w);
 }
 
 /* rct2: 0x6B9791 & 0x6E6171*/
 static void window_sign_textinput(rct_window *w, int widgetIndex, char *text)
 {
-	rct_banner* banner = &gBanners[w->number];
-	int x = banner->x << 5;
-	int y = banner->y << 5;
-
 	if (widgetIndex == WIDX_SIGN_TEXT && text != NULL) {
-		if (*text != 0) {
-			rct_string_id string_id = user_string_allocate(128, text);
-			if (string_id != 0) {
-				rct_string_id prev_string_id = banner->string_idx;
-				banner->string_idx = string_id;
-				user_string_free(prev_string_id);
-
-				banner->flags &= ~(BANNER_FLAG_2);
-				gfx_invalidate_screen();
-			} else {
-				window_error_open(2984, RCT2_GLOBAL(RCT2_ADDRESS_GAME_COMMAND_ERROR_TEXT, rct_string_id));
-			}
-		}
-		else{
-			int rideIndex = banner_get_closest_ride_index(x, y, 16);
-			if (rideIndex == -1)
-				return;
-
-			banner->colour = rideIndex;
-			banner->flags |= BANNER_FLAG_2;
-
-			rct_string_id prev_string_id = banner->string_idx;
-			banner->string_idx = 778;
-			user_string_free(prev_string_id);
-			gfx_invalidate_screen();
-		}
+		game_do_command(1, GAME_COMMAND_FLAG_APPLY, w->number, *((int*)(text + 0)), GAME_COMMAND_SET_SIGN_NAME, *((int*)(text + 8)), *((int*)(text + 4)));
+		game_do_command(2, GAME_COMMAND_FLAG_APPLY, w->number, *((int*)(text + 12)), GAME_COMMAND_SET_SIGN_NAME, *((int*)(text + 20)), *((int*)(text + 16)));
+		game_do_command(0, GAME_COMMAND_FLAG_APPLY, w->number, *((int*)(text + 24)), GAME_COMMAND_SET_SIGN_NAME, *((int*)(text + 32)), *((int*)(text + 28)));
 	}
 }
 
@@ -451,7 +410,7 @@ void window_sign_small_open(rct_windownumber number){
 
 	int view_x = gBanners[w->number].x << 5;
 	int view_y = gBanners[w->number].y << 5;
-	
+
 	rct_map_element* map_element = map_get_first_element_at(view_x / 32, view_y / 32);
 
 	while (1){
@@ -469,7 +428,8 @@ void window_sign_small_open(rct_windownumber number){
 	w->frame_no = view_z;
 
 	w->list_information_type = map_element->properties.fence.item[1] & 0x1F;
-	w->var_492 = (map_element->properties.fence.item[1] >> 5) | ((map_element->flags&0x60) >> 2);
+	w->var_492 =
+		((map_element->properties.fence.item[1] >> 5) | ((map_element->flags & 0x60) >> 2));
 	w->var_48C = map_element->properties.fence.type;
 
 	view_x += 16;
@@ -492,7 +452,7 @@ void window_sign_small_open(rct_windownumber number){
 	);
 
 	w->viewport->flags = (RCT2_GLOBAL(RCT2_ADDRESS_CONFIG_FLAGS, uint8) & CONFIG_FLAG_ALWAYS_SHOW_GRIDLINES) ? VIEWPORT_FLAG_GRIDLINES : 0;
-	w->flags |= WF_2;
+	w->flags |= WF_NO_SCROLLING;
 	window_invalidate(w);
 }
 
@@ -550,43 +510,23 @@ static void window_sign_small_mouseup(rct_window *w, int widgetIndex)
 /* rct2: 0x6E617C */
 static void window_sign_small_dropdown(rct_window *w, int widgetIndex, int dropdownIndex)
 {
+	rct_banner* banner = &gBanners[w->number];
+
 	switch (widgetIndex){
 	case WIDX_MAIN_COLOR:
 		if (dropdownIndex == -1) return;
 		w->list_information_type = dropdownIndex;
+		game_do_command(1, GAME_COMMAND_FLAG_APPLY, w->number, dropdownIndex, GAME_COMMAND_SET_SIGN_STYLE, w->var_492, 0);
 		break;
 	case WIDX_TEXT_COLOR:
 		if (dropdownIndex == -1) return;
 		w->var_492 = dropdownIndex;
+		game_do_command(1, GAME_COMMAND_FLAG_APPLY, w->number, w->list_information_type, GAME_COMMAND_SET_SIGN_STYLE, dropdownIndex, 0);
 		break;
 	default:
 		return;
 	}
 
-	rct_banner* banner = &gBanners[w->number];
-	int x = banner->x << 5;
-	int y = banner->y << 5;
-
-	rct_map_element* map_element = map_get_first_element_at(x / 32, y / 32);
-
-	while (1){
-		if (map_element_get_type(map_element) == MAP_ELEMENT_TYPE_FENCE) {
-			rct_scenery_entry* scenery_entry = g_wallSceneryEntries[map_element->properties.fence.type];
-			if (scenery_entry->wall.var_0D != 0xFF){
-				if (map_element->properties.fence.item[0] == w->number)
-					break;
-			}
-		}
-		map_element++;
-	}
-
-	map_element->flags &= 0x9F;
-	map_element->properties.fence.item[1] =
-		w->list_information_type |
-		((w->var_492 & 0x7) << 5);
-	map_element->flags |= ((w->var_492 & 0x18) << 2);
-
-	map_invalidate_tile(x, y, map_element->base_height * 8, map_element->clearance_height * 8);
 	window_invalidate(w);
 }
 

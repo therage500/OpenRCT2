@@ -21,7 +21,7 @@
 /**
  * Text Input Window
  *
- * This is a new window created to replace the windows dialog box 
+ * This is a new window created to replace the windows dialog box
  * that is used for inputing new text for ride names and peep names.
  */
 
@@ -125,7 +125,7 @@ void window_text_input_open(rct_window* call_w, int call_widget, rct_string_id t
 
 	// Work out the existing size of the window
 	char wrapped_string[512];
-	strcpy(wrapped_string, text_input);
+	safe_strncpy(wrapped_string, text_input, 512);
 
 	int no_lines = 0, font_height = 0;
 
@@ -137,9 +137,9 @@ void window_text_input_open(rct_window* call_w, int call_widget, rct_string_id t
 
 	// Window will be in the center of the screen
 	rct_window* w = window_create_centred(
-		WW, 
+		WW,
 		height,
-		&window_text_input_events, 
+		&window_text_input_events,
 		WC_TEXTINPUT,
 		WF_STICK_TO_FRONT
 	);
@@ -175,7 +175,7 @@ void window_text_input_raw_open(rct_window* call_w, int call_widget, rct_string_
 	// Enter in the the text input buffer any existing
 	// text.
 	if (existing_text != NULL)
-		strncpy(text_input, existing_text, maxLength);
+		safe_strncpy(text_input, existing_text, maxLength);
 
 	// In order to prevent strings that exceed the maxLength
 	// from crashing the game.
@@ -186,7 +186,7 @@ void window_text_input_raw_open(rct_window* call_w, int call_widget, rct_string_
 
 	// Work out the existing size of the window
 	char wrapped_string[512];
-	strcpy(wrapped_string, text_input);
+	safe_strncpy(wrapped_string, text_input, 512);
 
 	int no_lines = 0, font_height = 0;
 
@@ -260,10 +260,10 @@ static void window_text_input_paint(rct_window *w, rct_drawpixelinfo *dpi)
 	window_draw_widgets(w, dpi);
 
 	int y = w->y + 25;
-	
+
 	int no_lines = 0;
 	int font_height = 0;
-	
+
 
 	gfx_draw_string_centred(dpi, input_text_description, w->x + WW / 2, y, w->colours[1], &TextInputDescriptionArgs);
 
@@ -273,7 +273,7 @@ static void window_text_input_paint(rct_window *w, rct_drawpixelinfo *dpi)
 	RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_FONT_FLAGS, uint16) = 0;
 
 	char wrapped_string[512];
-	strcpy(wrapped_string, text_input);
+	safe_strncpy(wrapped_string, text_input, 512);
 
 	// String length needs to add 12 either side of box
 	// +13 for cursor when max length.
@@ -310,13 +310,13 @@ static void window_text_input_paint(rct_window *w, rct_drawpixelinfo *dpi)
 			}
 
 			if (w->frame_no > 15){
-				uint8 colour = RCT2_ADDRESS(0x0141FC48, uint8)[w->colours[1] * 8];
+				uint8 colour = ColourMapA[w->colours[1]].mid_light;
 				gfx_fill_rect(dpi, cursorX, y + 9, cursorX + width, y + 9, colour + 5);
 			}
 
 			cur_drawn++;
 		}
-		
+
 		wrap_pointer += string_length + 1;
 
 		if (text_input[char_count + string_length] == ' ')char_count++;
@@ -359,7 +359,7 @@ void window_text_input_key(rct_window* w, int key)
 		if (calling_w)
 			window_event_textinput_call(calling_w, calling_widget, text_input);
 	}
-	
+
 	window_invalidate(w);
 }
 
@@ -389,7 +389,7 @@ static void window_text_input_invalidate(rct_window *w)
 {
 	// Work out the existing size of the window
 	char wrapped_string[512];
-	strcpy(wrapped_string, text_input);
+	safe_strncpy(wrapped_string, text_input, 512);
 
 	int no_lines = 0, font_height = 0;
 

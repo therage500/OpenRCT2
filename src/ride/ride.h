@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -69,52 +69,6 @@ typedef struct {
 	uint8 count;
 	vehicle_colour list[256];
 } vehicle_colour_preset_list;
-
-/** 
- * Ride type vehicle structure.
- * size: 0x65
- */
-typedef struct{
-	uint16 var_00;				// 0x00 , 0x1A
-	uint8 var_02;				// 0x02 , 0x1C
-	uint8 var_03;				// 0x03 , 0x1D
-	uint32 var_04;				// 0x04 , 0x1E
-	uint16 var_08;				// 0x08 , 0x22
-	sint8 var_0A;				// 0x0A , 0x24
-	uint8 pad_0B;
-	uint16 var_0C;				// 0x0C , 0x26
-	uint8 var_0E;				// 0x0E , 0x28
-	uint8 var_0F;				// 0x0F , 0x29
-	uint8 var_10;				// 0x10 , 0x2A
-	uint8 var_11;				// 0x11 , 0x2B
-	uint16 var_12;				// 0x12 , 0x2C
-	uint16 var_14;				// 0x14 , 0x2E
-	uint16 var_16;				// 0x16 , 0x30
-	uint32 base_image_id;		// 0x18 , 0x32
-	uint32 var_1C;				// 0x1C , 0x36
-	uint32 var_20;				// 0x20 , 0x3A
-	uint32 var_24;				// 0x24 , 0x3E
-	uint32 var_28;				// 0x28 , 0x42
-	uint32 var_2C;				// 0x2C , 0x46
-	uint32 var_30;				// 0x30 , 0x4A
-	uint32 var_34;				// 0x34 , 0x4E
-	uint32 var_38;				// 0x38 , 0x52
-	uint32 var_3C;				// 0x3C , 0x56
-	uint32 var_40;				// 0x40 , 0x5A
-	uint32 var_44;				// 0x44 , 0x5E
-	uint32 var_48;				// 0x48 , 0x62
-	uint32 var_4C;				// 0x4C , 0x66
-	uint32 no_vehicle_images;	// 0x50 , 0x6A
-	uint8 no_seating_rows;		// 0x54 , 0x6E
-	uint8 pad_55[0x5];
-	uint8 var_5A;				// 0x5A , 0x74
-	uint8 pad_5B;				// 0x5B , 0x75
-	uint8 var_5C;				// 0x5C , 0x76
-	uint8 var_5D;				// 0x5D , 0x77
-	uint8 pad_5E[0x2];
-	uint8 var_60;				// 0x60 , 0x7A
-	sint8* peep_loading_positions;	// 0x61 , 0x7B
-} rct_ride_type_vehicle;
 
 /**
  * Ride type structure.
@@ -187,7 +141,7 @@ typedef struct {
 	uint8 var_066[4];
 	uint16 entrances[4];			// 0x06A
 	uint16 exits[4];				// 0x072
-	uint16 first_peep_in_queue[4];	// 0x07A
+	uint16 last_peep_in_queue[4];	// 0x07A
 	uint8 pad_082[4];
 	uint16 vehicles[32];			// 0x086 Points to the first car in the train
 	uint8 depart_flags;				// 0x0C6
@@ -219,7 +173,7 @@ typedef struct {
     // bit 7: whirlpool
 	uint8 special_track_elements;   // 0x0D5
 	uint8 pad_0D6[2];
-	// Divide this value by 29127 to get the human-readable max speed 
+	// Divide this value by 29127 to get the human-readable max speed
 	// (in RCT2, display_speed = (max_speed * 9) >> 18)
 	sint32 max_speed;				// 0x0D8
 	sint32 average_speed;			// 0x0DC
@@ -236,7 +190,9 @@ typedef struct {
 	union {
 		uint8 inversions;			// 0x114 (???X XXXX)
 		uint8 holes;				// 0x114 (???X XXXX)
-		uint8 var_114;
+		// The undercover portion is a very rough approximation of how much of the ride is undercover.
+		// It reaches the maximum value of 7 at about 50% undercover and doesn't increase beyond that.
+		uint8 undercover_portion;	// 0x114 (XXX?-????)
 	};
 	uint8 drops;					// 0x115 (??XX XXXX)
 	uint8 var_116;
@@ -407,7 +363,7 @@ enum {
 	RIDE_LIFECYCLE_BREAKDOWN_PENDING = 1 << 6,
 	RIDE_LIFECYCLE_BROKEN_DOWN = 1 << 7,
 	RIDE_LIFECYCLE_DUE_INSPECTION = 1 << 8,
-	RIDE_LIFECYCLE_9 = 1 << 9,
+	RIDE_LIFECYCLE_QUEUE_FULL = 1 << 9,
 	RIDE_LIFECYCLE_CRASHED = 1 << 10,
 	RIDE_LIFECYCLE_11 = 1 << 11,
 	RIDE_LIFECYCLE_EVER_BEEN_OPENED = 1 << 12,
@@ -437,9 +393,9 @@ enum {
 	RIDE_ENTRY_FLAG_SEPARATE_RIDE_NAME = 1 << 12, // 0x1000
 	RIDE_ENTRY_FLAG_SEPARATE_RIDE = 1 << 13, // 0x2000
 	RIDE_ENTRY_FLAG_14 = 1 << 14, // 0x4000
-	RIDE_ENTRY_FLAG_15 = 1 << 15, // 0x8000
+	RIDE_ENTRY_DISABLE_LAST_OPERATING_MODE = 1 << 15, // 0x8000
 	RIDE_ENTRY_FLAG_16 = 1 << 16, // 0x10000
-	RIDE_ENTRY_FLAG_17 = 1 << 17, // 0x20000
+	RIDE_ENTRY_DISABLE_FIRST_TWO_OPERATING_MODES = 1 << 17, // 0x20000
 	RIDE_ENTRY_FLAG_18 = 1 << 18, // 0x40000
 	RIDE_ENTRY_FLAG_19 = 1 << 19, // 0x80000
 	RIDE_ENTRY_FLAG_20 = 1 << 20, // 0x100000
@@ -872,7 +828,7 @@ extern rct_ride* g_ride_list;
 /** Helper macros until rides are stored in this module. */
 #define GET_RIDE(x) (&g_ride_list[x])
 #define GET_RIDE_MEASUREMENT(x) (&(RCT2_ADDRESS(RCT2_ADDRESS_RIDE_MEASUREMENTS, rct_ride_measurement)[x]))
-#define GET_RIDE_ENTRY(x) RCT2_ADDRESS(RCT2_ADDRESS_RIDE_ENTRIES, rct_ride_type*)[x]
+#define GET_RIDE_ENTRY(x) gRideTypeList[x]
 
 /**
  * Helper macro loop for enumerating through all the non null rides.
@@ -920,6 +876,13 @@ extern const uint8 gRideClassifications[255];
 
 #define _currentSeatRotationAngle					RCT2_GLOBAL(0x00F440CF, uint8)
 
+extern bool gGotoStartPlacementMode;
+extern int gRideRemoveTrackPieceCallbackX;
+extern int gRideRemoveTrackPieceCallbackY;
+extern int gRideRemoveTrackPieceCallbackZ;
+extern int gRideRemoveTrackPieceCallbackDirection;
+extern int gRideRemoveTrackPieceCallbackType;
+
 int ride_get_count();
 int ride_get_total_queue_length(rct_ride *ride);
 int ride_get_max_queue_time(rct_ride *ride);
@@ -930,6 +893,10 @@ void ride_update_all();
 void ride_check_all_reachable();
 void ride_update_satisfaction(rct_ride* ride, uint8 happiness);
 void ride_update_popularity(rct_ride* ride, uint8 pop_amount);
+money32 get_shop_item_cost(int shopItem);
+money16 get_shop_base_value(int shopItem);
+money16 get_shop_hot_value(int shopItem);
+money16 get_shop_cold_value(int shopItem);
 int sub_6CAF80(int rideIndex, rct_xy_element *output);
 int ride_find_track_gap(rct_xy_element *input, rct_xy_element *output);
 void ride_construct_new(ride_list_item listItem);
@@ -967,6 +934,9 @@ void game_command_set_ride_setting(int *eax, int *ebx, int *ecx, int *edx, int *
 int ride_get_refund_price(int ride_id);
 void game_command_create_ride(int *eax, int *ebx, int *ecx, int *edx, int *esi, int *edi, int *ebp);
 void game_command_callback_ride_construct_new(int eax, int ebx, int ecx, int edx, int esi, int edi, int ebp);
+void game_command_callback_ride_construct_placed_front(int eax, int ebx, int ecx, int edx, int esi, int edi, int ebp);
+void game_command_callback_ride_construct_placed_back(int eax, int ebx, int ecx, int edx, int esi, int edi, int ebp);
+void game_command_callback_ride_remove_track_piece(int eax, int ebx, int ecx, int edx, int esi, int edi, int ebp);
 void game_command_demolish_ride(int *eax, int *ebx, int *ecx, int *edx, int *esi, int *edi, int *ebp);
 void game_command_set_ride_appearance(int *eax, int *ebx, int *ecx, int *edx, int *esi, int *edi, int *ebp);
 void game_command_set_ride_price(int *eax, int *ebx, int *ecx, int *edx, int *esi, int *edi, int *ebp);
@@ -1041,7 +1011,12 @@ bool ride_type_is_intamin(int rideType);
 void sub_6C94D8();
 
 bool shop_item_is_food_or_drink(int shopItem);
+bool shop_item_is_food(int shopItem);
+bool shop_item_is_drink(int shopItem);
+bool shop_item_is_souvenir(int shopItem);
 void ride_reset_all_names();
 const uint8* ride_seek_available_modes(rct_ride *ride);
+
+void window_ride_construction_mouseup_demolish_next_piece(int x, int y, int z, int direction, int type);
 
 #endif

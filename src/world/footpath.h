@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -50,6 +50,7 @@ extern const rct_xy16 word_981D6C[4];
 
 money32 footpath_remove_real(int x, int y, int z, int flags);
 void game_command_place_footpath(int *eax, int *ebx, int *ecx, int *edx, int *esi, int *edi, int *ebp);
+void game_command_place_footpath_from_track(int *eax, int *ebx, int *ecx, int *edx, int *esi, int *edi, int *ebp);
 void game_command_remove_footpath(int *eax, int *ebx, int *ecx, int *edx, int *esi, int *edi, int *ebp);
 money32 footpath_place(int type, int x, int y, int z, int slope, int flags);
 void footpath_remove(int x, int y, int z, int flags);
@@ -63,6 +64,7 @@ void footpath_connect_edges(int x, int y, rct_map_element *mapElement, int flags
 void sub_6A759F();
 bool fence_in_the_way(int x, int y, int z0, int z1, int direction);
 void footpath_chain_ride_queue(int rideIndex, int entranceIndex, int x, int y, rct_map_element *mapElement, int direction);
+void footpath_update_path_wide_flags(int x, int y);
 
 void footpath_bridge_get_info_from_pos(int screenX, int screenY, int *x, int *y, int *direction, rct_map_element **mapElement);
 

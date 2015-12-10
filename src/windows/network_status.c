@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -22,12 +22,16 @@
 #include "../interface/widget.h"
 #include "../interface/window.h"
 #include "../localisation/localisation.h"
+#include "../util/util.h"
 #include "../network/network.h"
+
+char _password[33];
 
 enum WINDOW_NETWORK_STATUS_WIDGET_IDX {
 	WIDX_BACKGROUND,
 	WIDX_TITLE,
 	WIDX_CLOSE,
+	WIDX_PASSWORD
 };
 
 static rct_widget window_network_status_widgets[] = {
@@ -41,6 +45,7 @@ static char window_network_status_text[1024];
 
 static void window_network_status_mouseup(rct_window *w, int widgetIndex);
 static void window_network_status_update(rct_window *w);
+static void window_network_status_textinput(rct_window *w, int widgetIndex, char *text);
 static void window_network_status_invalidate(rct_window *w);
 static void window_network_status_paint(rct_window *w, rct_drawpixelinfo *dpi);
 
@@ -64,7 +69,7 @@ static rct_window_event_list window_network_status_events = {
 	NULL,
 	NULL,
 	NULL,
-	NULL,
+	window_network_status_textinput,
 	NULL,
 	NULL,
 	NULL,
@@ -79,7 +84,7 @@ void window_network_status_open(const char* text)
 {
 	rct_window* window;
 
-	strncpy(window_network_status_text, text, sizeof(window_network_status_text));
+	safe_strncpy(window_network_status_text, text, sizeof(window_network_status_text));
 
 	// Check if window is already open
 	window = window_bring_to_front_by_class(WC_NETWORK_STATUS);
@@ -111,6 +116,16 @@ void window_network_status_close()
 	window_close_by_class(WC_NETWORK_STATUS);
 }
 
+void window_network_status_open_password()
+{
+	rct_window* window;
+	window = window_bring_to_front_by_class(WC_NETWORK_STATUS);
+	if (window == NULL)
+		return;
+
+	window_text_input_raw_open(window, WIDX_PASSWORD, STR_PASSWORD_REQUIRED, STR_PASSWORD_REQUIRED_DESC, _password, 32);
+}
+
 static void window_network_status_mouseup(rct_window *w, int widgetIndex)
 {
 	switch (widgetIndex) {
@@ -123,6 +138,22 @@ static void window_network_status_mouseup(rct_window *w, int widgetIndex)
 static void window_network_status_update(rct_window *w)
 {
 	widget_invalidate(w, WIDX_BACKGROUND);
+}
+
+static void window_network_status_textinput(rct_window *w, int widgetIndex, char *text)
+{
+	strcpy(_password, "");
+	switch (widgetIndex) {
+	case WIDX_PASSWORD:
+		if (text != NULL)
+			safe_strncpy(_password, text, sizeof(_password));
+		break;
+	}
+	if (text == NULL) {
+		network_shutdown_client();
+	} else {
+		network_send_password(_password);
+	}
 }
 
 static void window_network_status_invalidate(rct_window *w)

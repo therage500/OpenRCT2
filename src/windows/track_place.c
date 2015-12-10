@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -150,7 +150,7 @@ static void window_track_place_draw_mini_preview()
 		if (track->type != RIDE_TYPE_MAZE) {
 			#pragma region Track
 
-			rotation = RCT2_GLOBAL(RCT2_ADDRESS_TRACK_PREVIEW_ROTATION, uint8) + RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_ROTATION, uint32);
+			rotation = RCT2_GLOBAL(RCT2_ADDRESS_TRACK_PREVIEW_ROTATION, uint8) + get_current_rotation();
 			trackElement = RCT2_ADDRESS(0x009D821B, rct_track_element);
 
 			while (trackElement->type != 255) {
@@ -166,7 +166,7 @@ static void window_track_place_draw_mini_preview()
 				while (trackBlock->index != 255) {
 					x = originX;
 					y = originY;
-					
+
 					switch (rotation & 3) {
 					case 0:
 						x += trackBlock->x;
@@ -249,7 +249,7 @@ static void window_track_place_draw_mini_preview()
 		} else {
 			#pragma region Maze
 
-			rotation = (RCT2_GLOBAL(RCT2_ADDRESS_TRACK_PREVIEW_ROTATION, uint8) + RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_ROTATION, uint32)) & 3;
+			rotation = (RCT2_GLOBAL(RCT2_ADDRESS_TRACK_PREVIEW_ROTATION, uint8) + get_current_rotation()) & 3;
 			mazeElement = RCT2_ADDRESS(0x009D821B, rct_maze_element);
 			while (mazeElement->all != 0) {
 				x = mazeElement->x * 32;
@@ -310,7 +310,7 @@ static void window_track_place_clear_provisional()
 	if (_window_track_place_last_was_valid) {
 		sub_6D01B3(
 			6,
-			RCT2_GLOBAL(0x00F440EB, uint8), 
+			RCT2_GLOBAL(0x00F440EB, uint8),
 			_window_track_place_last_valid_x,
 			_window_track_place_last_valid_y,
 			_window_track_place_last_valid_z
@@ -327,7 +327,7 @@ static int window_track_place_get_base_z(int x, int y)
 {
 	rct_map_element *mapElement;
 	int z;
-	
+
 	mapElement = map_get_surface_element_at(x >> 5, y >> 5);
 	z = mapElement->base_height * 8;
 
@@ -343,7 +343,7 @@ static int window_track_place_get_base_z(int x, int y)
 	// Increase Z above water
 	if (mapElement->properties.surface.terrain & 0x1F)
 		z = max(z, (mapElement->properties.surface.terrain & 0x1F) << 4);
-	
+
 	return z + sub_6D01B3(3, 0, x, y, z);
 }
 
@@ -352,6 +352,7 @@ static void window_track_place_attempt_placement(int x, int y, int z, int bl, mo
 	int eax, ebx, ecx, edx, esi, edi, ebp;
 	money32 result;
 
+	edx = esi = ebp = 0;
 	eax = x;
 	ebx = bl;
 	ecx = y;
@@ -393,7 +394,7 @@ void window_track_place_open()
 	show_gridlines();
 	_window_track_place_last_cost = MONEY32_UNDEFINED;
 	_window_track_place_last_x = 0xFFFF;
-	RCT2_GLOBAL(RCT2_ADDRESS_TRACK_PREVIEW_ROTATION, uint8) = (-RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_ROTATION, uint8) + 2) & 3;
+	RCT2_GLOBAL(RCT2_ADDRESS_TRACK_PREVIEW_ROTATION, uint8) = (2 - get_current_rotation()) & 3;
 	window_track_place_draw_mini_preview();
 }
 
@@ -486,7 +487,7 @@ static void window_track_place_toolupdate(rct_window* w, int widgetIndex, int x,
 	mapZ = window_track_place_get_base_z(mapX, mapY);
 	if (RCT2_GLOBAL(RCT2_ADDRESS_GAME_PAUSED, uint8) == 0 || gConfigCheat.build_in_pause_mode) {
 		window_track_place_clear_provisional();
-		
+
 		// Try increasing Z until a feasible placement is found
 		for (i = 0; i < 7; i++) {
 			window_track_place_attempt_placement(mapX, mapY, mapZ, 105, &cost, &rideIndex);
@@ -508,7 +509,7 @@ static void window_track_place_toolupdate(rct_window* w, int widgetIndex, int x,
 		_window_track_place_last_cost = cost;
 		widget_invalidate(w, WIDX_PRICE);
 	}
-	
+
 	sub_6D01B3(0, 0, mapX, mapY, mapZ);
 }
 
@@ -530,7 +531,7 @@ static void window_track_place_tooldown(rct_window* w, int widgetIndex, int x, i
 	sub_68A15E(x, y, &mapX, &mapY, NULL, NULL);
 	if (mapX == (short)0x8000)
 		return;
-	
+
 	// Try increasing Z until a feasible placement is found
 	mapZ = window_track_place_get_base_z(mapX, mapY);
 	for (i = 0; i < 7; i++) {
@@ -540,7 +541,7 @@ static void window_track_place_tooldown(rct_window* w, int widgetIndex, int x, i
 
 		if (cost != MONEY32_UNDEFINED) {
 			window_close_by_class(WC_ERROR);
-			sound_play_panned(SOUND_PLACE_ITEM, 0x8001, mapX, mapY, mapZ);
+			audio_play_sound_at_location(SOUND_PLACE_ITEM, mapX, mapY, mapZ);
 
 			RCT2_GLOBAL(0x00F440A7, uint8) = rideIndex;
 			if (RCT2_GLOBAL(0x00F4414E, uint8) & 1) {
@@ -562,7 +563,7 @@ static void window_track_place_tooldown(rct_window* w, int widgetIndex, int x, i
 	}
 
 	// Unable to build track
-	sound_play_panned(SOUND_ERROR, 0x8001, mapX, mapY, mapZ);
+	audio_play_sound_at_location(SOUND_ERROR, mapX, mapY, mapZ);
 }
 
 /**
@@ -596,7 +597,7 @@ static void window_track_place_paint(rct_window *w, rct_drawpixelinfo *dpi)
 {
 	rct_drawpixelinfo *clippedDpi;
 	rct_g1_element tmpElement, *subsituteElement;
-	
+
 	window_draw_widgets(w, dpi);
 
 	// Draw mini tile preview

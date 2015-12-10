@@ -383,7 +383,7 @@ static void window_new_ride_scroll_to_focused_ride(rct_window *w)
 	int scrollWidth = 0;
 	int scrollHeight = 0;
 	window_get_scroll_size(w, 0, &scrollWidth, &scrollHeight);
-	
+
 	// Find row index of the focused ride type
 	rct_widget *listWidget = &window_new_ride_widgets[WIDX_RIDE_LIST];
 	int focusRideType = RCT2_ADDRESS(RCT2_ADDRESS_WINDOW_RIDE_LIST_HIGHLIGHTED_ITEM, uint16)[_window_new_ride_current_tab];
@@ -443,13 +443,13 @@ rct_window *window_new_ride_open()
 	w->new_ride.highlighted_ride_id = -1;
 	_lastTrackDesignCountRideType.type = 255;
 	_lastTrackDesignCountRideType.entry_index = 255;
-	
+
 	window_new_ride_populate_list();
-	
+
 	w->new_ride.highlighted_ride_id = RCT2_ADDRESS(RCT2_ADDRESS_WINDOW_RIDE_LIST_HIGHLIGHTED_ITEM, sint16)[_window_new_ride_current_tab];
 	if (w->new_ride.highlighted_ride_id == -1)
 		w->new_ride.highlighted_ride_id = RCT2_GLOBAL(0x00F43523, sint16);
-	
+
 	w->width = 1;
 	window_new_ride_refresh_widget_sizing(w);
 	window_new_ride_scroll_to_focused_ride(w);
@@ -460,7 +460,7 @@ rct_window *window_new_ride_open()
 rct_window *window_new_ride_open_research()
 {
 	rct_window *w;
-	
+
 	w = window_new_ride_open();
 	window_new_ride_set_page(w, WINDOW_NEW_RIDE_PAGE_RESEARCH);
 	return w;
@@ -489,7 +489,7 @@ void window_new_ride_focus(ride_list_item rideItem)
 	ride_list_item *listItem = (ride_list_item*)0x00F43523;
 	while (listItem->type != RIDE_TYPE_NULL) {
 		if (listItem->type == rideItem.type && listItem->entry_index == rideItem.entry_index) {
-			RCT2_GLOBAL(0x00F43825, uint8) = rideItem.type;
+			RCT2_GLOBAL(RCT2_ADDRESS_WINDOW_RIDE_LIST_HIGHLIGHTED_ITEM, uint8) = rideItem.type;
 			RCT2_GLOBAL(0x00F43826, uint8) = rideItem.entry_index;
 			w->new_ride.highlighted_ride_id = (rideItem.entry_index << 8) | rideItem.type;
 			window_new_ride_scroll_to_focused_ride(w);
@@ -688,7 +688,7 @@ static void window_new_ride_scrollmousedown(rct_window *w, int scrollIndex, int 
 	RCT2_ADDRESS(RCT2_ADDRESS_WINDOW_RIDE_LIST_HIGHLIGHTED_ITEM, ride_list_item)[_window_new_ride_current_tab] = item;
 	w->new_ride.selected_ride_id = *((sint16*)&item);
 
-	sound_play_panned(SOUND_CLICK_1, w->x + (w->width / 2), 0, 0, 0);
+	audio_play_sound_panned(SOUND_CLICK_1, w->x + (w->width / 2), 0, 0, 0);
 	w->new_ride.selected_ride_countdown = 8;
 	window_invalidate(w);
 }
@@ -720,7 +720,7 @@ static void window_new_ride_scrollmouseover(rct_window *w, int scrollIndex, int 
  */
 static void window_new_ride_tooltip(rct_window* w, int widgetIndex, rct_string_id *stringId)
 {
-	RCT2_GLOBAL(0x013CE952, uint16) = 3159;
+	RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint16) = 3159;
 }
 
 /**
@@ -777,7 +777,7 @@ static void window_new_ride_scrollpaint(rct_window *w, rct_drawpixelinfo *dpi, i
 	if (_window_new_ride_current_tab == WINDOW_NEW_RIDE_PAGE_RESEARCH)
 		return;
 
-	gfx_clear(dpi, RCT2_GLOBAL(0x0141FC48 + (w->colours[1] * 8), uint8) * 0x1010101);
+	gfx_clear(dpi, ColourMapA[w->colours[1]].mid_light * 0x1010101);
 
 	int x = 1;
 	int y = 1;
@@ -790,7 +790,7 @@ static void window_new_ride_scrollpaint(rct_window *w, rct_drawpixelinfo *dpi, i
 			flags |= 0x20;
 		if (w->new_ride.highlighted_ride_id == *((sint16*)listItem) || flags != 0)
 			gfx_fill_rect_inset(dpi, x, y, x + 115, y + 115, w->colours[1], 0x80 | flags);
-		
+
 		// Draw ride image with feathered border
 		rideEntry = rideEntries[listItem->entry_index];
 		int image_id = rideEntry->images_offset;
@@ -847,9 +847,9 @@ static int get_num_track_designs(ride_list_item item)
 {
 	track_load_list(item);
 
-	uint8 *trackDesignList = (uint8*)0x00F441EC;
+	char *trackDesignList = RCT2_ADDRESS(RCT2_ADDRESS_TRACK_LIST, char);
 	int count = 0;
-	while (*trackDesignList != 0 && trackDesignList < (uint8*)0x00F635EC) {
+	while (*trackDesignList != 0 && trackDesignList < (char*)0x00F635EC) {
 		trackDesignList += 128;
 		count++;
 	}
@@ -911,7 +911,7 @@ static void window_new_ride_paint_ride_information(rct_window *w, rct_drawpixeli
 		}
 		price = (price >> 17) * 10 * RCT2_GLOBAL(0x0097D21D + (item.type * 8), uint8);
 
-		// 
+		//
 		rct_string_id stringId = 1691;
 		if (!ride_type_has_flag(item.type, RIDE_TYPE_FLAG_15))
 			stringId++;
@@ -936,7 +936,7 @@ static void window_new_ride_select(rct_window *w)
 	if (ride_type_has_flag(item.type, RIDE_TYPE_FLAG_HAS_TRACK)) {
 		track_load_list(item);
 
-		uint8 *trackDesignList = (uint8*)0x00F441EC;
+		char *trackDesignList = RCT2_ADDRESS(RCT2_ADDRESS_TRACK_LIST, char);
 		if (*trackDesignList != 0) {
 			window_track_list_open(item);
 			return;

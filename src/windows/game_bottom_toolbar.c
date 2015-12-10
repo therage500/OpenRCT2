@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -69,7 +69,7 @@ rct_widget window_game_bottom_toolbar_widgets[] = {
 
 	{ WWT_IMGBTN,	0,	0x0208-WIDTH_MOD,	0x027F,	0,		33,		0xFFFFFFFF,	STR_NONE },	// Right outset panel
 	{ WWT_IMGBTN,	0,	0x020A-WIDTH_MOD,	0x027D,	2,		31,		0xFFFFFFFF,	STR_NONE },	// Right inset panel
-	{ WWT_FLATBTN,	0,	0x020A-WIDTH_MOD,	0x027D,	2,		13,		0xFFFFFFFF,	2290 },	// Date
+	{ WWT_FLATBTN,	0,	0x020A-WIDTH_MOD,	0x027D,	2,		13,		0xFFFFFFFF,	STR_NONE },	// Date
 	{ WIDGETS_END },
 };
 
@@ -134,7 +134,7 @@ void window_game_bottom_toolbar_open()
 		RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_WIDTH, uint16), 32,
 		&window_game_bottom_toolbar_events,
 		WC_BOTTOM_TOOLBAR,
-		WF_STICK_TO_FRONT | WF_TRANSPARENT | WF_5
+		WF_STICK_TO_FRONT | WF_TRANSPARENT | WF_NO_BACKGROUND
 	);
 	window->widgets = window_game_bottom_toolbar_widgets;
 	window->enabled_widgets |=
@@ -158,7 +158,7 @@ void window_game_bottom_toolbar_open()
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066C588
  */
 static void window_game_bottom_toolbar_mouseup(rct_window *w, int widgetIndex)
@@ -216,24 +216,24 @@ static void window_game_bottom_toolbar_tooltip(rct_window* w, int widgetIndex, r
 
 	switch (widgetIndex) {
 	case WIDX_MONEY:
-		RCT2_GLOBAL(0x013CE952, int) = RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_PROFIT, sint32);
+		RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, int) = RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_PROFIT, sint32);
 		RCT2_GLOBAL(0x013CE956, int) = RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_PARK_VALUE, sint32);
 		break;
 	case WIDX_PARK_RATING:
-		RCT2_GLOBAL(0x013CE952, short) = RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_PARK_RATING, sint16);
+		RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, short) = RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_PARK_RATING, sint16);
 		break;
 	case WIDX_DATE:
 		month = RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_MONTH_YEAR, sint16) & 7;
 		day = ((RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_MONTH_TICKS, uint16) * days_in_month[month]) >> 16) & 0xFF;
-		
-		RCT2_GLOBAL(0x013CE952, short) = STR_DATE_DAY_1 + day;
+
+		RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, short) = STR_DATE_DAY_1 + day;
 		RCT2_GLOBAL(0x013CE954, short) = STR_MONTH_MARCH + month;
 		break;
 	}
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066BBA0
  */
 static void window_game_bottom_toolbar_invalidate(rct_window *w)
@@ -314,7 +314,7 @@ static void window_game_bottom_toolbar_invalidate(rct_window *w)
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066BB79
  */
 void window_game_bottom_toolbar_invalidate_news_item()
@@ -325,7 +325,7 @@ void window_game_bottom_toolbar_invalidate_news_item()
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066BC87
  */
 static void window_game_bottom_toolbar_paint(rct_window *w, rct_drawpixelinfo *dpi)
@@ -379,10 +379,10 @@ static void window_game_bottom_toolbar_draw_left_panel(rct_drawpixelinfo *dpi, r
 
 	// Draw money
 	if (!(RCT2_GLOBAL(RCT2_ADDRESS_PARK_FLAGS, uint32) & PARK_FLAGS_NO_MONEY)) {
-		RCT2_GLOBAL(0x013CE952, int) = DECRYPT_MONEY(RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_MONEY_ENCRYPTED, sint32));
+		RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, int) = DECRYPT_MONEY(RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_MONEY_ENCRYPTED, sint32));
 		gfx_draw_string_centred(
 			dpi,
-			(RCT2_GLOBAL(0x013CE952, int) < 0 ? 1391 : 1390),
+			(RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, int) < 0 ? 1391 : 1390),
 			x, y - 3,
 			(RCT2_GLOBAL(RCT2_ADDRESS_CURSOR_OVER_WINDOWCLASS, rct_windowclass) == 2 && RCT2_GLOBAL(RCT2_ADDRESS_CURSOR_OVER_WIDGETINDEX, sint32) == WIDX_MONEY ? 2 : w->colours[0] & 0x7F),
 			(void*)0x013CE952
@@ -411,7 +411,7 @@ static void window_game_bottom_toolbar_draw_left_panel(rct_drawpixelinfo *dpi, r
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066C76C
  */
 static void window_game_bottom_toolbar_draw_park_rating(rct_drawpixelinfo *dpi, rct_window *w, int colour, int x, int y, uint8 factor)
@@ -452,19 +452,14 @@ static void window_game_bottom_toolbar_draw_right_panel(rct_drawpixelinfo *dpi, 
 	int year = date_get_year(RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_MONTH_YEAR, sint16)) + 1;
 	int month = date_get_month(RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_MONTH_YEAR, sint16) & 7);
 	int day = ((RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_MONTH_TICKS, uint16) * days_in_month[month]) >> 16) & 0xFF;
-	if (gConfigGeneral.date_format) {
-		RCT2_GLOBAL(0x013CE952, short) = month;
-		RCT2_GLOBAL(0x013CE954, short) = STR_DATE_DAY_1 + day;
-	}
-	else {
-		RCT2_GLOBAL(0x013CE952, short) = STR_DATE_DAY_1 + day;
-		RCT2_GLOBAL(0x013CE954, short) = month;
-	}
-	
+
+	rct_string_id stringId = DateFormatStringFormatIds[gConfigGeneral.date_format];
+	RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, short) = STR_DATE_DAY_1 + day;
+	RCT2_GLOBAL(0x013CE954, short) = month;
 	RCT2_GLOBAL(0x013CE956, short) = year;
 	gfx_draw_string_centred(
 		dpi,
-		(gConfigGeneral.date_format ? 5160 : 2737),
+		stringId,
 		x,
 		y,
 		(RCT2_GLOBAL(RCT2_ADDRESS_CURSOR_OVER_WINDOWCLASS, rct_windowclass) == 2 && RCT2_GLOBAL(RCT2_ADDRESS_CURSOR_OVER_WIDGETINDEX, sint32) == WIDX_DATE ? 2 : w->colours[0] & 0x7F),
@@ -481,7 +476,7 @@ static void window_game_bottom_toolbar_draw_right_panel(rct_drawpixelinfo *dpi, 
 		temperature = climate_celsius_to_fahrenheit(temperature);
 		format = STR_FAHRENHEIT_VALUE;
 	}
-	RCT2_GLOBAL(0x013CE952, short) = temperature;
+	RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, short) = temperature;
 	gfx_draw_string_left(dpi, format, (void*)0x013CE952, 0, x, y + 6);
 	x += 30;
 
@@ -498,7 +493,7 @@ static void window_game_bottom_toolbar_draw_right_panel(rct_drawpixelinfo *dpi, 
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066BFA5
  */
 static void window_game_bottom_toolbar_draw_news_item(rct_drawpixelinfo *dpi, rct_window *w)

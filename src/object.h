@@ -108,13 +108,13 @@ int object_get_scenario_text(rct_object_entry *entry);
 void object_free_scenario_text();
 int object_get_length(rct_object_entry *entry);
 int object_entry_compare(const rct_object_entry *a, const rct_object_entry *b);
-int object_calculate_checksum(const rct_object_entry *entry, const char *data, int dataLength);
+int object_calculate_checksum(const rct_object_entry *entry, const uint8 *data, int dataLength);
 int object_paint(int type, int eax, int ebx, int ecx, int edx, int esi, int edi, int ebp);
 rct_object_entry *object_get_next(rct_object_entry *entry);
 int write_object_file(SDL_RWops* rw, rct_object_entry* entry);
 void reset_loaded_objects();
 int find_object_in_entry_group(rct_object_entry* entry, uint8* entry_type, uint8* entry_index);
-void object_create_identifier_name(uint8* string_buffer, rct_object_entry* object);
+void object_create_identifier_name(char* string_buffer, const rct_object_entry* object);
 
 rct_object_entry *object_list_find(rct_object_entry *entry);
 

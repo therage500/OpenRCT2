@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -39,8 +39,12 @@ int bitscanforward(int source);
 int bitcount(int source);
 bool strequals(const char *a, const char *b, int length, bool caseInsensitive);
 int strcicmp(char const *a, char const *b);
+char *safe_strncpy(char * destination, const char * source, size_t num);
 
 bool utf8_is_bom(const char *str);
 bool str_is_null_or_empty(const char *str);
+
+void util_srand(int source);
+uint32 util_rand();
 
 #endif

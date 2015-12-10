@@ -70,7 +70,7 @@ enum WINDOW_STAFF_WIDGET_IDX {
 	WIDX_COSTUME_BTN,
 };
 
-rct_widget window_staff_overview_widgets[] = { 
+rct_widget window_staff_overview_widgets[] = {
 	{ WWT_FRAME,	0, 0,		WW - 1,		0,			WH - 1,	0x0FFFFFFFF,	STR_NONE },				// Panel / Background
 	{ WWT_CAPTION,	0, 1,		WW - 2,		1,			14,		0x361,			STR_WINDOW_TITLE_TIP }, // Title
 	{ WWT_CLOSEBOX, 0, WW - 13, WW - 3,		2,			13,		STR_CLOSE_X,	STR_CLOSE_WINDOW_TIP }, // Close x button
@@ -90,7 +90,7 @@ rct_widget window_staff_overview_widgets[] = {
 };
 
 //0x9AF910
-rct_widget window_staff_options_widgets[] = { 
+rct_widget window_staff_options_widgets[] = {
 	{ WWT_FRAME,			0, 0,		WW - 1,	0,		WH - 1,	0x0FFFFFFFF,	STR_NONE },				// Panel / Background
 	{ WWT_CAPTION,			0, 1,		WW - 2,	1,		14,		0x361,			STR_WINDOW_TITLE_TIP }, // Title
 	{ WWT_CLOSEBOX,			0, WW - 13, WW - 3,	2,		13,		STR_CLOSE_X,	STR_CLOSE_WINDOW_TIP }, // Close x button
@@ -109,7 +109,7 @@ rct_widget window_staff_options_widgets[] = {
 };
 
 //0x9AF9F4
-rct_widget window_staff_stats_widgets[] = { 
+rct_widget window_staff_stats_widgets[] = {
 	{ WWT_FRAME,	0, 0,		WW - 1,	0,	WH - 1,	0x0FFFFFFFF,	STR_NONE },				// Panel / Background
 	{ WWT_CAPTION,	0, 1,		WW - 2,	1,	14,		0x361,			STR_WINDOW_TITLE_TIP }, // Title
 	{ WWT_CLOSEBOX, 0, WW - 13, WW - 3,	2,	13,		STR_CLOSE_X,	STR_CLOSE_WINDOW_TIP }, // Close x button
@@ -388,16 +388,16 @@ void window_staff_set_page(rct_window* w, int page)
 		if(w->number == RCT2_GLOBAL(RCT2_ADDRESS_TOOL_WINDOWNUMBER, rct_windownumber) &&
 		   w->classification == RCT2_GLOBAL(RCT2_ADDRESS_TOOL_WINDOWCLASS, rct_windowclass))
 			tool_cancel();
-	
+
 	}
-	
+
 	int listen = 0;
 	if (page == WINDOW_STAFF_OVERVIEW && w->page == WINDOW_STAFF_OVERVIEW && w->viewport){
 		if (!(w->viewport->flags & VIEWPORT_FLAG_SOUND_ON))
 			listen = 1;
 	}
 
-	
+
 	w->page = page;
 	w->frame_no = 0;
 
@@ -514,7 +514,7 @@ void window_staff_overview_resize(rct_window *w)
 	window_staff_viewport_init(w);
 }
 
-/** 
+/**
  * Handle the dropdown of patrol button.
  * rct2: 0x006BDF98
  */
@@ -532,13 +532,13 @@ void window_staff_overview_mousedown(int widgetIndex, rct_window* w, rct_widget*
 	int y = widget->top + w->y;
 	int extray = widget->bottom - widget->top + 1;
 	window_dropdown_show_text(x, y, extray, w->colours[1], 0, 2);
-	RCT2_GLOBAL(0x009DEBA2, sint16) = 0;
+	gDropdownHighlightedIndex = 0;
 
 	rct_peep* peep = GET_PEEP(w->number);
 
 	// Disable clear patrol area if no area is set.
 	if (!(RCT2_ADDRESS(RCT2_ADDRESS_STAFF_MODE_ARRAY, uint8)[peep->staff_id] & 2)) {
-		RCT2_GLOBAL(0x009DED34, sint32) |= 1 << 1;
+		gDropdownItemsDisabled |= (1ULL << 1);
 	}
 }
 
@@ -575,7 +575,7 @@ void window_staff_overview_dropdown(rct_window *w, int widgetIndex, int dropdown
 
 /**
  * Update the animation frame of the tab icon.
- * rct2: 0x6BE602 
+ * rct2: 0x6BE602
  */
 void window_staff_overview_update(rct_window* w)
 {
@@ -646,10 +646,10 @@ void window_staff_stats_mouseup(rct_window *w, int widgetIndex)
 void window_staff_stats_resize(rct_window *w)
 {
 	w->min_width = 190;
-	w->max_width = 190; 
+	w->max_width = 190;
 	w->min_height = 119;
 	w->max_height = 119;
-	
+
 	if (w->width < w->min_width) {
 		w->width = w->min_width;
 		window_invalidate(w);
@@ -805,7 +805,7 @@ void window_staff_overview_invalidate(rct_window *w)
 	}
 
 	w->pressed_widgets |= 1ULL << (w->page + WIDX_TAB_1);
-	
+
 	rct_peep* peep = GET_PEEP(w->number);
 
 	RCT2_GLOBAL(0x13CE952, uint16) = peep->name_string_idx;
@@ -1073,7 +1073,7 @@ void window_staff_overview_tool_down(rct_window* w, int widgetIndex, int x, int 
 
 		if (dest_x == (sint16)0x8000)return;
 
-		// Set the coordinate of destination to be exactly 
+		// Set the coordinate of destination to be exactly
 		// in the middle of a tile.
 		dest_x += 16;
 		dest_y += 16;
@@ -1188,7 +1188,7 @@ void window_staff_viewport_init(rct_window* w){
 	}
 	else{
 		focus.type |= VIEWPORT_FOCUS_TYPE_SPRITE | VIEWPORT_FOCUS_TYPE_COORDINATE;
-		focus.rotation = RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_ROTATION, uint8);
+		focus.rotation = get_current_rotation();
 	}
 
 	uint16 viewport_flags;
@@ -1228,7 +1228,7 @@ void window_staff_viewport_init(rct_window* w){
 			int height = view_widget->bottom - view_widget->top - 1;
 
 			viewport_create(w, x, y, width, height, 0, 0, 0, 0, focus.type & VIEWPORT_FOCUS_TYPE_MASK, focus.sprite_id);
-			w->flags |= WF_2;
+			w->flags |= WF_NO_SCROLLING;
 			window_invalidate(w);
 		}
 	}
@@ -1271,7 +1271,7 @@ void window_staff_options_mousedown(int widgetIndex, rct_window* w, rct_widget* 
 
 	rct_peep* peep = GET_PEEP(w->number);
 	int item_checked = 0;
-	//This will be moved below where Items Checked is when all 
+	//This will be moved below where Items Checked is when all
 	//of dropdown related functions are finished. This prevents
 	//the dropdown from not working on first click.
 	for (int i = 0; i < no_entries; ++i){
@@ -1285,13 +1285,13 @@ void window_staff_options_mousedown(int widgetIndex, rct_window* w, rct_widget* 
 
 	//Get the dropdown box widget instead of button.
 	widget--;
-	
+
 	int x = widget->left + w->x;
 	int y = widget->top + w->y;
 	int extray = widget->bottom - widget->top + 1;
 	int width = widget->right - widget->left - 3;
 	window_dropdown_show_text_custom_width(x, y, extray, w->colours[1], DROPDOWN_FLAG_STAY_OPEN, no_entries, width);
-	
+
 	// See above note.
 	gDropdownItemsChecked = item_checked;
 }

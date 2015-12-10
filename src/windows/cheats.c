@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -36,6 +36,7 @@
 #include "../world/scenery.h"
 #include "../interface/themes.h"
 #include "../cheats.h"
+#include "error.h"
 
 #define CHEATS_MONEY_INCREMENT MONEY(5000,00)
 #define CHEATS_TRAM_INCREMENT 250
@@ -118,7 +119,9 @@ enum WINDOW_CHEATS_WIDGET_IDX {
 	WIDX_DISABLE_ALL_BREAKDOWNS,
 	WIDX_BUILD_IN_PAUSE_MODE,
 	WIDX_RESET_CRASH_STATUS,
-	WIDX_SHOW_ALL_OPERATING_MODES
+	WIDX_10_MINUTE_INSPECTIONS,
+	WIDX_SHOW_ALL_OPERATING_MODES,
+	WIDX_SHOW_VEHICLES_FROM_OTHER_TRACK_TYPES
 };
 
 enum {
@@ -258,7 +261,9 @@ static rct_widget window_cheats_rides_widgets[] = {
 	{ WWT_CHECKBOX,			2,		XPL(0),					OWPL,					YPL(10),		OHPL(10),		STR_CHEAT_DISABLE_BREAKDOWNS,		STR_NONE }, 							// Disable all breakdowns
 	{ WWT_CHECKBOX,			2,		XPL(0),					OWPL,					YPL(8),			OHPL(8),		STR_CHEAT_BUILD_IN_PAUSE_MODE,		STR_NONE }, 							// Build in pause mode
 	{ WWT_CLOSEBOX,			1,		XPL(0),					WPL(0),					YPL(2),			HPL(2),			STR_CHEAT_RESET_CRASH_STATUS,		STR_NONE },								// Reset crash status
+	{ WWT_CLOSEBOX,			1,		XPL(1),					WPL(1),					YPL(2),			HPL(2),			STR_CHEAT_10_MINUTE_INSPECTIONS,	STR_CHEAT_10_MINUTE_INSPECTIONS_TIP },	// 10 minute inspections
 	{ WWT_CHECKBOX,			2,		XPL(0),					OWPL,					YPL(7),			OHPL(7),		STR_CHEAT_SHOW_ALL_OPERATING_MODES,	STR_NONE }, 							// Show all operating modes
+	{ WWT_CHECKBOX,			2,		XPL(0),					OWPL,					YPL(6),			OHPL(6),		STR_CHEAT_SHOW_VEHICLES_FROM_OTHER_TRACK_TYPES,	STR_NONE }, 				// Show vehicles from other track types
 	{ WIDGETS_END },
 };
 
@@ -414,7 +419,7 @@ static uint64 window_cheats_page_enabled_widgets[] = {
 	(1ULL << WIDX_CLOSE) | (1ULL << WIDX_TAB_1) | (1ULL << WIDX_TAB_2) | (1ULL << WIDX_TAB_3) | (1ULL << WIDX_TAB_4) | (1ULL << WIDX_HIGH_MONEY) | (1ULL << WIDX_CLEAR_LOAN),
 	(1ULL << WIDX_CLOSE) | (1ULL << WIDX_TAB_1) | (1ULL << WIDX_TAB_2) | (1ULL << WIDX_TAB_3) | (1ULL << WIDX_TAB_4) | (1ULL << WIDX_GUEST_PARAMETERS_GROUP) | (1ULL << WIDX_GUEST_HAPPINESS_MAX)  | (1ULL << WIDX_GUEST_HAPPINESS_MIN) | (1ULL << WIDX_GUEST_ENERGY_MAX) | (1ULL << WIDX_GUEST_ENERGY_MIN) | (1ULL << WIDX_GUEST_HUNGER_MAX) | (1ULL << WIDX_GUEST_HUNGER_MIN) | (1ULL << WIDX_GUEST_THIRST_MAX) | (1ULL << WIDX_GUEST_THIRST_MIN) | (1ULL << WIDX_GUEST_NAUSEA_MAX) | (1ULL << WIDX_GUEST_NAUSEA_MIN) | (1ULL << WIDX_GUEST_NAUSEA_TOLERANCE_MAX) | (1ULL << WIDX_GUEST_NAUSEA_TOLERANCE_MIN) | (1ULL << WIDX_GUEST_BATHROOM_MAX) | (1ULL << WIDX_GUEST_BATHROOM_MIN) | (1ULL << WIDX_GUEST_RIDE_INTENSITY_MORE_THAN_1) | (1ULL << WIDX_GUEST_RIDE_INTENSITY_LESS_THAN_15) | (1ULL << WIDX_GUEST_IGNORE_RIDE_INTENSITY) | (1ULL << WIDX_GIVE_ALL_GUESTS_GROUP) | (1ULL << WIDX_GIVE_GUESTS_MONEY) | (1ULL << WIDX_GIVE_GUESTS_PARK_MAPS) | (1ULL << WIDX_GIVE_GUESTS_BALLOONS) | (1ULL << WIDX_GIVE_GUESTS_UMBRELLAS) | (1ULL << WIDX_TRAM_GUESTS) | (1ULL << WIDX_REMOVE_ALL_GUESTS) | (1ULL << WIDX_EXPLODE_GUESTS) | (1ULL << WIDX_DISABLE_VANDALISM),
 	(1ULL << WIDX_CLOSE) | (1ULL << WIDX_TAB_1) | (1ULL << WIDX_TAB_2) | (1ULL << WIDX_TAB_3) | (1ULL << WIDX_TAB_4) | (1ULL << WIDX_FREEZE_CLIMATE) | (1ULL << WIDX_OPEN_CLOSE_PARK) | (1ULL << WIDX_WEATHER_SUN) | (1ULL << WIDX_WEATHER_THUNDER) | (1ULL << WIDX_CLEAR_GRASS) | (1ULL << WIDX_MOWED_GRASS) | (1ULL << WIDX_WATER_PLANTS) | (1ULL << WIDX_FIX_VANDALISM) | (1ULL << WIDX_REMOVE_LITTER) | (1ULL << WIDX_WIN_SCENARIO) | (1ULL << WIDX_HAVE_FUN) | (1ULL << WIDX_UNLOCK_ALL_PRICES) | (1ULL << WIDX_SANDBOX_MODE) | (1ULL << WIDX_FAST_STAFF) | (1ULL << WIDX_NORMAL_STAFF) | (1ULL << WIDX_PARK_PARAMETERS) | (1ULL << WIDX_FORCE_PARK_RATING) | (1ULL << WIDX_INCREASE_PARK_RATING) | (1ULL << WIDX_DECREASE_PARK_RATING),
-	(1ULL << WIDX_CLOSE) | (1ULL << WIDX_TAB_1) | (1ULL << WIDX_TAB_2) | (1ULL << WIDX_TAB_3) | (1ULL << WIDX_TAB_4) | (1ULL << WIDX_RENEW_RIDES) | (1ULL << WIDX_MAKE_DESTRUCTIBLE) | (1ULL << WIDX_FIX_ALL) | (1ULL << WIDX_FAST_LIFT_HILL) | (1ULL << WIDX_DISABLE_BRAKES_FAILURE) | (1ULL << WIDX_DISABLE_ALL_BREAKDOWNS) | (1ULL << WIDX_BUILD_IN_PAUSE_MODE) | (1ULL << WIDX_RESET_CRASH_STATUS) | (1ULL << WIDX_SHOW_ALL_OPERATING_MODES)
+	(1ULL << WIDX_CLOSE) | (1ULL << WIDX_TAB_1) | (1ULL << WIDX_TAB_2) | (1ULL << WIDX_TAB_3) | (1ULL << WIDX_TAB_4) | (1ULL << WIDX_RENEW_RIDES) | (1ULL << WIDX_MAKE_DESTRUCTIBLE) | (1ULL << WIDX_FIX_ALL) | (1ULL << WIDX_FAST_LIFT_HILL) | (1ULL << WIDX_DISABLE_BRAKES_FAILURE) | (1ULL << WIDX_DISABLE_ALL_BREAKDOWNS) | (1ULL << WIDX_BUILD_IN_PAUSE_MODE) | (1ULL << WIDX_RESET_CRASH_STATUS) | (1ULL << WIDX_10_MINUTE_INSPECTIONS) | (1ULL << WIDX_SHOW_ALL_OPERATING_MODES) | (1ULL << WIDX_SHOW_VEHICLES_FROM_OTHER_TRACK_TYPES)
 };
 
 static rct_string_id window_cheats_page_titles[] = {
@@ -584,6 +589,18 @@ static void cheat_reset_crash_status()
 	window_invalidate_by_class(WC_RIDE);
 }
 
+static void cheat_10_minute_inspections()
+{
+	int i;
+	rct_ride *ride;
+
+	FOR_ALL_RIDES(i, ride) {
+		// Set inspection interval to 10 minutes
+		ride->inspection_interval = RIDE_INSPECTION_EVERY_10_MINUTES;
+	}
+	window_invalidate_by_class(WC_RIDE);
+}
+
 static void cheat_increase_money(money32 amount)
 {
 	money32 currentMoney;
@@ -708,7 +725,8 @@ static void cheat_remove_all_guests()
 		ride_set_status(i, RIDE_STATUS_CLOSED);
 
 		for(int i=0;i<4;i++) {
-			ride->first_peep_in_queue[i]=0xFFFF;
+			ride->queue_length[i] = 0;
+			ride->last_peep_in_queue[i]=0xFFFF;
 		}
 	}
 	window_invalidate_by_class(WC_RIDE);
@@ -1008,8 +1026,20 @@ static void window_cheats_rides_mouseup(rct_window *w, int widgetIndex)
 	case WIDX_RESET_CRASH_STATUS:
 		cheat_reset_crash_status();
 		break;
+	case WIDX_10_MINUTE_INSPECTIONS:
+		cheat_10_minute_inspections();
+		break;
 	case WIDX_SHOW_ALL_OPERATING_MODES:
 		gCheatsShowAllOperatingModes = !gCheatsShowAllOperatingModes;
+		if (gCheatsShowAllOperatingModes) {
+			window_error_open(STR_WARNING_IN_CAPS, STR_THIS_FEATURE_IS_CURRENTLY_UNSTABLE);
+		}
+		break;
+	case WIDX_SHOW_VEHICLES_FROM_OTHER_TRACK_TYPES:
+		gCheatsShowVehiclesFromOtherTrackTypes = !gCheatsShowVehiclesFromOtherTrackTypes;
+		if (gCheatsShowVehiclesFromOtherTrackTypes) {
+			window_error_open(STR_WARNING_IN_CAPS, STR_THIS_FEATURE_IS_CURRENTLY_UNSTABLE);
+		}
 		break;
 	}
 }
@@ -1055,10 +1085,10 @@ static void window_cheats_invalidate(rct_window *w)
 
 	switch (w->page) {
 	case WINDOW_CHEATS_PAGE_MONEY:
-		RCT2_GLOBAL(0x013CE952, int) = 50000;
+		RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, int) = 50000;
 		break;
 	case WINDOW_CHEATS_PAGE_GUESTS:
-		RCT2_GLOBAL(0x013CE952, int) = 10000;
+		RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, int) = 10000;
 		widget_set_checkbox_value(w, WIDX_GUEST_IGNORE_RIDE_INTENSITY, gConfigCheat.ignore_ride_intensity);
 		widget_set_checkbox_value(w, WIDX_DISABLE_VANDALISM, gConfigCheat.disable_vandalism);
 		break;
@@ -1075,6 +1105,7 @@ static void window_cheats_invalidate(rct_window *w)
 		widget_set_checkbox_value(w, WIDX_DISABLE_ALL_BREAKDOWNS, gConfigCheat.disable_all_breakdowns);
 		widget_set_checkbox_value(w, WIDX_BUILD_IN_PAUSE_MODE, gConfigCheat.build_in_pause_mode);
 		widget_set_checkbox_value(w, WIDX_SHOW_ALL_OPERATING_MODES, gCheatsShowAllOperatingModes);
+		widget_set_checkbox_value(w, WIDX_SHOW_VEHICLES_FROM_OTHER_TRACK_TYPES, gCheatsShowVehiclesFromOtherTrackTypes);
 		break;
 	}
 
@@ -1124,7 +1155,7 @@ static void window_cheats_draw_tab_images(rct_drawpixelinfo *dpi, rct_window *w)
 			sprite_idx += (w->frame_no / 2) % 8;
 		gfx_draw_sprite(dpi, sprite_idx, w->x + w->widgets[WIDX_TAB_1].left, w->y + w->widgets[WIDX_TAB_1].top, 0);
 	}
-	
+
 	// Guests tab
 	if (!(w->disabled_widgets & (1 << WIDX_TAB_2))) {
 		sprite_idx = 5568;
@@ -1152,9 +1183,9 @@ static void window_cheats_set_page(rct_window *w, int page)
 {
 	w->page = page;
 	w->frame_no = 0;
-	
+
 	w->enabled_widgets = window_cheats_page_enabled_widgets[page];
-	
+
 	w->pressed_widgets = 0;
 
 	w->event_handlers = window_cheats_page_events[page];

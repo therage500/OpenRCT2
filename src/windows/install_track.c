@@ -134,15 +134,16 @@ void window_install_track_open(const char* path)
 	w->track_list.var_484 = 0;
 	window_push_others_right(w);
 
-	memset(track_path, 0, MAX_PATH - 1);
-	strcpy(track_path, path);
+	strncpy(track_path, path, MAX_PATH);
+	track_path[MAX_PATH - 1] = '\0';
 
 	char* track_name_pointer = track_path;
 	while (*track_name_pointer++ != '\0');
 	while (*--track_name_pointer != '\\');
 	track_name_pointer++;
 
-	strcpy(track_dest_name, track_name_pointer);
+	strncpy(track_dest_name, track_name_pointer, MAX_PATH);
+	track_dest_name[MAX_PATH - 1] = '\0';
 
 	window_invalidate(w);
 }
@@ -153,12 +154,12 @@ void window_install_track_open(const char* path)
 */
 static void window_install_track_select(rct_window *w, int index)
 {
-	uint8 *trackDesignItem, *trackDesignList = RCT2_ADDRESS(RCT2_ADDRESS_TRACK_LIST, uint8);
+	utf8 *trackDesignItem, *trackDesignList = RCT2_ADDRESS(RCT2_ADDRESS_TRACK_LIST, utf8);
 	rct_track_design *trackDesign;
 
 	w->track_list.var_480 = index;
 
-	sound_play_panned(SOUND_CLICK_1, w->x + (w->width / 2), 0, 0, 0);
+	audio_play_sound_panned(SOUND_CLICK_1, w->x + (w->width / 2), 0, 0, 0);
 	if (!(RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_FLAGS, uint8) & SCREEN_FLAGS_TRACK_MANAGER) && index == 0) {
 		window_close(w);
 		ride_construct_new(_window_install_track_item);
@@ -172,7 +173,7 @@ static void window_install_track_select(rct_window *w, int index)
 		index--;
 
 	trackDesignItem = trackDesignList + (index * 128);
-	RCT2_GLOBAL(0x00F4403C, uint8*) = trackDesignItem;
+	RCT2_GLOBAL(0x00F4403C, utf8*) = trackDesignItem;
 
 	window_track_list_format_name(
 		(char*)0x009BC313,
@@ -270,7 +271,7 @@ static void window_install_track_invalidate(rct_window *w)
 	else
 		w->pressed_widgets &= ~(1 << WIDX_TOGGLE_SCENERY);
 
-	if (w->track_list.var_482 != 0xFFFF) {	
+	if (w->track_list.var_482 != 0xFFFF) {
 		w->disabled_widgets &= ~(1 << WIDX_TRACK_PREVIEW);
 	}
 	else {
@@ -301,7 +302,7 @@ static void window_install_track_paint(rct_window *w, rct_drawpixelinfo *dpi)
 	widget = &window_install_track_widgets[WIDX_TRACK_PREVIEW];
 	x = w->x + widget->left + 1;
 	y = w->y + widget->top + 1;
-	colour = RCT2_GLOBAL(0x0141FC44 + (w->colours[0] * 8), uint8);
+	colour = ColourMapA[w->colours[0]].darkest;
 	gfx_fill_rect(dpi, x, y, x + 369, y + 216, colour);
 
 	//call 6d3993 (load track)
@@ -326,7 +327,7 @@ static void window_install_track_paint(rct_window *w, rct_drawpixelinfo *dpi)
 	y = w->y + widget->bottom - 12;
 
 	RCT2_GLOBAL(0x00F44153, uint8) = 0;
-	
+
 	// Warnings
 	if (track_td6->track_flags & 1) {
 		RCT2_GLOBAL(0x00F44153, uint8) = 1;

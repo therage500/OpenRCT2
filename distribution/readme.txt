@@ -1,5 +1,5 @@
-Last updated:    2015-06-21
-Release version: 0.0.2-beta
+Last updated:    2015-12-04
+Release version: 0.0.3-1-beta
 ------------------------------------------------------------------------
 
 

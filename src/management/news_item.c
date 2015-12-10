@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -26,6 +26,7 @@
 #include "../localisation/localisation.h"
 #include "../ride/ride.h"
 #include "../world/sprite.h"
+#include "../util/util.h"
 #include "news_item.h"
 
 rct_news_item *gNewsItems = RCT2_ADDRESS(RCT2_ADDRESS_NEWS_ITEM_LIST, rct_news_item);
@@ -80,10 +81,11 @@ void news_item_init_queue()
 static void news_item_tick_current()
 {
 	int ticks;
-	ticks = news_item_get(0)->ticks++;
-	if (ticks == 1 && !(RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_FLAGS, uint8) & 1)) {
+	ticks = ++news_item_get(0)->ticks;
+	// Only play news item sound when in normal playing mode
+	if (ticks == 1 && (RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_FLAGS, uint8) == SCREEN_FLAGS_PLAYING)) {
 		// Play sound
-		sound_play_panned(SOUND_NEWS_ITEM, RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_WIDTH, uint16) / 2, 0, 0, 0);
+		audio_play_sound_panned(SOUND_NEWS_ITEM, RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_WIDTH, uint16) / 2, 0, 0, 0);
 	}
 }
 
@@ -103,7 +105,7 @@ static bool news_item_is_current_old()
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066E252
  */
 void news_item_update_current()
@@ -122,18 +124,18 @@ void news_item_update_current()
 			bx = 12;
 		if (bx != RCT2_GLOBAL(0x009DEA6B, sint16) || ax != 1) {
 			// loc_66E2AE
-			RCT2_GLOBAL(0x013573DC, sint32) -= 10000;
-			if (RCT2_GLOBAL(0x013573DC, sint32) >= 0)
-				RCT2_GLOBAL(0x013573DC, sint32) = -RCT2_GLOBAL(0x013573DC, sint32);
+			RCT2_GLOBAL(RCT2_ADDRESS_INITIAL_CASH, sint32) -= 10000;
+			if (RCT2_GLOBAL(RCT2_ADDRESS_INITIAL_CASH, sint32) >= 0)
+				RCT2_GLOBAL(RCT2_ADDRESS_INITIAL_CASH, sint32) = -RCT2_GLOBAL(RCT2_ADDRESS_INITIAL_CASH, sint32);
 		}
 	} else {
 		if (ax != RCT2_GLOBAL(0x009DEA69, sint16)) {
 			ax--;
 			if (ax != RCT2_GLOBAL(0x009DEA69, sint16)) {
 				// loc_66E2AE
-				RCT2_GLOBAL(0x013573DC, sint32) -= 10000;
-				if (RCT2_GLOBAL(0x013573DC, sint32) >= 0)
-					RCT2_GLOBAL(0x013573DC, sint32) = -RCT2_GLOBAL(0x013573DC, sint32);
+				RCT2_GLOBAL(RCT2_ADDRESS_INITIAL_CASH, sint32) -= 10000;
+				if (RCT2_GLOBAL(RCT2_ADDRESS_INITIAL_CASH, sint32) >= 0)
+					RCT2_GLOBAL(RCT2_ADDRESS_INITIAL_CASH, sint32) = -RCT2_GLOBAL(RCT2_ADDRESS_INITIAL_CASH, sint32);
 			}
 		}
 	}
@@ -156,7 +158,7 @@ void news_item_update_current()
 }
 
 /**
- * 
+ *
  *  rct2: 0x0066E377
  */
 void news_item_close_current()
@@ -324,7 +326,7 @@ void news_item_add_to_queue_raw(uint8 type, const utf8 *text, uint32 assoc)
 	newsItem->ticks = 0;
 	newsItem->month_year = RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_MONTH_YEAR, uint16);
 	newsItem->day = ((days_in_month[(newsItem->month_year & 7)] * RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_MONTH_TICKS, uint16)) >> 16) + 1;
-	strncpy(newsItem->text, text, 255);
+	safe_strncpy(newsItem->text, text, 255);
 	newsItem->text[254] = 0;
 
 	// blatant disregard for what happens on the last element.
@@ -381,7 +383,7 @@ void news_item_open_subject(int type, int subject)
 				}
 			}
 		}
-		
+
 		// Switch to new scenery tab
 		window = window_find_by_class(WC_SCENERY);
 		if (window != NULL)

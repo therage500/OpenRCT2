@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -76,7 +76,7 @@ static int award_is_deserved_most_untidy(int awardType, int activeAwardTypes)
 
 	negativeCount = 0;
 	FOR_ALL_GUESTS(spriteIndex, peep) {
-		if (peep->var_2A != 0)
+		if (peep->outside_of_park != 0)
 			continue;
 
 		if (peep->thoughts[0].var_2 > 5)
@@ -109,7 +109,7 @@ static int award_is_deserved_most_tidy(int awardType, int activeAwardTypes)
 	positiveCount = 0;
 	negativeCount = 0;
 	FOR_ALL_GUESTS(spriteIndex, peep) {
-		if (peep->var_2A != 0)
+		if (peep->outside_of_park != 0)
 			continue;
 
 		if (peep->thoughts[0].var_2 > 5)
@@ -183,7 +183,7 @@ static int award_is_deserved_most_beautiful(int awardType, int activeAwardTypes)
 	positiveCount = 0;
 	negativeCount = 0;
 	FOR_ALL_GUESTS(spriteIndex, peep) {
-		if (peep->var_2A != 0)
+		if (peep->outside_of_park != 0)
 			continue;
 
 		if (peep->thoughts[0].var_2 > 5)
@@ -227,7 +227,7 @@ static int award_is_deserved_safest(int awardType, int activeAwardTypes)
 
 	peepsWhoDislikeVandalism = 0;
 	FOR_ALL_GUESTS(spriteIndex, peep) {
-		if (peep->var_2A != 0)
+		if (peep->outside_of_park != 0)
 			continue;
 		if (peep->thoughts[0].var_2 <= 5 && peep->thoughts[0].type == PEEP_THOUGHT_TYPE_VANDALISM)
 			peepsWhoDislikeVandalism++;
@@ -307,7 +307,7 @@ static int award_is_deserved_best_food(int awardType, int activeAwardTypes)
 	// Count hungry peeps
 	hungryPeeps = 0;
 	FOR_ALL_GUESTS(spriteIndex, peep) {
-		if (peep->var_2A != 0)
+		if (peep->outside_of_park != 0)
 			continue;
 
 		if (peep->thoughts[0].var_2 <= 5 && peep->thoughts[0].type == PEEP_THOUGHT_TYPE_HUNGRY)
@@ -353,7 +353,7 @@ static int award_is_deserved_worst_food(int awardType, int activeAwardTypes)
 	// Count hungry peeps
 	hungryPeeps = 0;
 	FOR_ALL_GUESTS(spriteIndex, peep) {
-		if (peep->var_2A != 0)
+		if (peep->outside_of_park != 0)
 			continue;
 
 		if (peep->thoughts[0].var_2 <= 5 && peep->thoughts[0].type == PEEP_THOUGHT_TYPE_HUNGRY)
@@ -388,7 +388,7 @@ static int award_is_deserved_best_restrooms(int awardType, int activeAwardTypes)
 	// Count number of guests who are thinking they need the restroom
 	guestsWhoNeedRestroom = 0;
 	FOR_ALL_GUESTS(spriteIndex, peep) {
-		if (peep->var_2A != 0)
+		if (peep->outside_of_park != 0)
 			continue;
 
 		if (peep->thoughts[0].var_2 <= 5 && peep->thoughts[0].type == PEEP_THOUGHT_TYPE_BATHROOM)
@@ -416,7 +416,7 @@ static int award_is_deserved_most_disappointing(int awardType, int activeAwardTy
 	FOR_ALL_RIDES(i, ride) {
 		if (ride->excitement == (ride_rating)0xFFFF || ride->popularity == 0xFF)
 			continue;
-		
+
 		countedRides++;
 
 		// Unpopular
@@ -517,7 +517,7 @@ static int award_is_deserved_most_confusing_layout(int awardType, int activeAwar
 	peepsCounted = 0;
 	peepsLost = 0;
 	FOR_ALL_GUESTS(spriteIndex, peep) {
-		if (peep->var_2A != 0)
+		if (peep->outside_of_park != 0)
 			continue;
 
 		peepsCounted++;

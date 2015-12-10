@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -38,7 +38,7 @@ static int screenshot_dump_bmp();
 static int screenshot_dump_png();
 
 /**
- * 
+ *
  *  rct2: 0x006E3AEC
  */
 void screenshot_check()
@@ -55,8 +55,8 @@ void screenshot_check()
 				rct_string_id stringId = 3165;
 				sprintf((char*)language_get_string(stringId), "SCR%d%s", screenshotIndex, _screenshot_format_extension[gConfigGeneral.screenshot_format]);
 
-				RCT2_GLOBAL(0x013CE952, uint16) = stringId;
-				// RCT2_GLOBAL(0x013CE952, uint16) = STR_SCR_BMP;
+				RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint16) = stringId;
+				// RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint16) = STR_SCR_BMP;
 				// RCT2_GLOBAL(0x013CE952 + 2, uint16) = screenshotIndex;
 				RCT2_GLOBAL(0x009A8C29, uint8) |= 1;
 
@@ -83,7 +83,7 @@ static int screenshot_get_next_path(char *path, int format)
 
 	int i;
 	for (i = 1; i < 1000; i++) {
-		RCT2_GLOBAL(0x013CE952, uint16) = i;
+		RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint16) = i;
 
 		// Glue together path and filename
 		sprintf(path, "%sSCR%d%s", screenshotPath, i, _screenshot_format_extension[format]);
@@ -133,7 +133,7 @@ typedef struct {
 } BitmapInfoHeader;
 
 /**
- * 
+ *
  *  rct2: 0x00683D20
  */
 int screenshot_dump_bmp()
@@ -142,7 +142,8 @@ int screenshot_dump_bmp()
 	BitmapInfoHeader info;
 
 	int i, y, index, width, height, stride;
-	char *buffer, path[MAX_PATH], *row;
+	char path[MAX_PATH];
+	uint8 *buffer, *row;
 	SDL_RWops *fp;
 	unsigned int bytesWritten;
 
@@ -176,7 +177,9 @@ int screenshot_dump_bmp()
 	bytesWritten = SDL_RWwrite(fp, &header, sizeof(BitmapFileHeader), 1);
 	if (bytesWritten != 1) {
 		SDL_RWclose(fp);
-		free(buffer);
+		SafeFree(buffer);
+		log_error("failed to save screenshot");
+		return -1;
 	}
 
 	// Info header
@@ -193,21 +196,25 @@ int screenshot_dump_bmp()
 	bytesWritten = SDL_RWwrite(fp, &info, sizeof(BitmapInfoHeader), 1);
 	if (bytesWritten != 1) {
 		SDL_RWclose(fp);
-		free(buffer);
+		SafeFree(buffer);
+		log_error("failed to save screenshot");
+		return -1;
 	}
 
 	// Palette
 	memset(buffer, 0, 246 * 4);
 	for (i = 0; i < 246; i++) {
-		buffer[i * 4 + 0] = RCT2_ADDRESS(0x01424680, uint8)[i * 4 + 0];
-		buffer[i * 4 + 1] = RCT2_ADDRESS(0x01424680, uint8)[i * 4 + 1];
-		buffer[i * 4 + 2] = RCT2_ADDRESS(0x01424680, uint8)[i * 4 + 2];
+		buffer[i * 4 + 0] = RCT2_ADDRESS(RCT2_ADDRESS_PALETTE, uint8)[i * 4 + 0];
+		buffer[i * 4 + 1] = RCT2_ADDRESS(RCT2_ADDRESS_PALETTE, uint8)[i * 4 + 1];
+		buffer[i * 4 + 2] = RCT2_ADDRESS(RCT2_ADDRESS_PALETTE, uint8)[i * 4 + 2];
 	}
 
 	bytesWritten = SDL_RWwrite(fp, buffer, sizeof(char), 246 * 4);
 	if (bytesWritten != 246*4){
 		SDL_RWclose(fp);
-		free(buffer);
+		SafeFree(buffer);
+		log_error("failed to save screenshot");
+		return -1;
 	}
 
 	// Image, save upside down
@@ -221,7 +228,9 @@ int screenshot_dump_bmp()
 		bytesWritten = SDL_RWwrite(fp, buffer, sizeof(char), stride);
 		if (bytesWritten != stride){
 			SDL_RWclose(fp);
-			free(buffer);
+			SafeFree(buffer);
+			log_error("failed to save screenshot");
+			return -1;
 		}
 	}
 
@@ -259,9 +268,9 @@ int screenshot_dump_png()
 	padding = dpi->pitch;
 
 	for (i = 0; i < 256; i++) {
-		b = RCT2_ADDRESS(0x01424680, uint8)[i * 4 + 0];
-		g = RCT2_ADDRESS(0x01424680, uint8)[i * 4 + 1];
-		r = RCT2_ADDRESS(0x01424680, uint8)[i * 4 + 2];
+		b = RCT2_ADDRESS(RCT2_ADDRESS_PALETTE, uint8)[i * 4 + 0];
+		g = RCT2_ADDRESS(RCT2_ADDRESS_PALETTE, uint8)[i * 4 + 1];
+		r = RCT2_ADDRESS(RCT2_ADDRESS_PALETTE, uint8)[i * 4 + 2];
 
 		lodepng_palette_add(&state.info_raw, r, g, b, a);
 	}
@@ -321,9 +330,9 @@ bool screenshot_write_png(rct_drawpixelinfo *dpi, const char *path)
 	for (int i = 0; i < 256; i++) {
 		unsigned char r, g, b, a = 255;
 
-		b = RCT2_ADDRESS(0x01424680, uint8)[i * 4 + 0];
-		g = RCT2_ADDRESS(0x01424680, uint8)[i * 4 + 1];
-		r = RCT2_ADDRESS(0x01424680, uint8)[i * 4 + 2];
+		b = RCT2_ADDRESS(RCT2_ADDRESS_PALETTE, uint8)[i * 4 + 0];
+		g = RCT2_ADDRESS(RCT2_ADDRESS_PALETTE, uint8)[i * 4 + 1];
+		r = RCT2_ADDRESS(RCT2_ADDRESS_PALETTE, uint8)[i * 4 + 2];
 
 		lodepng_palette_add(&state.info_raw, r, g, b, a);
 	}
@@ -348,7 +357,7 @@ bool screenshot_write_png(rct_drawpixelinfo *dpi, const char *path)
 
 void screenshot_giant()
 {
-	int originalRotation = RCT2_GLOBAL(RCT2_ADDRESS_CURRENT_ROTATION, uint8);
+	int originalRotation = get_current_rotation();
 	int originalZoom = 0;
 
 	rct_window *mainWindow = window_get_main();
@@ -451,7 +460,7 @@ int cmdline_for_screenshot(const char **argv, int argc)
 	bool centreMapX = false;
 	bool centreMapY = false;
 	int resolutionWidth, resolutionHeight, customX, customY, customZoom, customRotation;
-	
+
 	const char *inputPath = argv[0];
 	const char *outputPath = argv[1];
 	if (giantScreenshot) {

@@ -1,9 +1,9 @@
 /*****************************************************************************
  * Copyright (c) 2014 Ted John, Matthias Lanzinger
  * OpenRCT2, an open source clone of Roller Coaster Tycoon 2.
- * 
+ *
  * This file is part of OpenRCT2.
- * 
+ *
  * OpenRCT2 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -47,6 +47,7 @@
 #include "ride/track.h"
 #include "scenario.h"
 #include "title.h"
+#include "util/util.h"
 #include "world/map.h"
 #include "world/park.h"
 #include "world/climate.h"
@@ -62,6 +63,7 @@ void print_launch_information();
 int rct2_init_directories();
 int rct2_startup_checks();
 
+static void rct2_draw_fps();
 static void rct2_update_2();
 
 static jmp_buf _end_update_jump;
@@ -79,7 +81,7 @@ int rct2_init()
 	RCT2_GLOBAL(RCT2_ADDRESS_SCENARIO_TICKS, uint32) = 0;
 	RCT2_GLOBAL(0x009AC310, char*) = RCT2_GLOBAL(RCT2_ADDRESS_CMDLINE, char*);
 	get_system_time();
-	srand((unsigned int)time(0));
+	util_srand((unsigned int)time(0));
 	RCT2_GLOBAL(0x009DEA69, short) = RCT2_GLOBAL(RCT2_ADDRESS_OS_TIME_DAY, short);
 	RCT2_GLOBAL(0x009DEA6B, short) = RCT2_GLOBAL(RCT2_ADDRESS_OS_TIME_MONTH, short);
 	if (!rct2_init_directories())
@@ -104,7 +106,7 @@ int rct2_init()
 	font_sprite_initialise_characters();
 	if (!gOpenRCT2Headless) {
 		platform_init();
-		audio_init1();
+		audio_init_ride_sounds_and_info();
 	}
 	viewport_init_all();
 	news_item_init_queue();
@@ -137,7 +139,7 @@ int rct2_init()
 }
 
 /**
- * 
+ *
  *  rct2: 0x00683499
  */
 int rct2_init_directories()
@@ -202,7 +204,7 @@ void subsitute_path(char *dest, const char *path, const char *filename)
 }
 
 /**
- * 
+ *
  *  rct2: 0x00674B42
  */
 int rct2_startup_checks()
@@ -212,7 +214,7 @@ int rct2_startup_checks()
 
 	if (!check_files_integrity())
 		return 0;
-	
+
 	return 1;
 }
 
@@ -228,8 +230,8 @@ void rct2_update()
 	#else
 	__asm__ ( "\
 	\n\
-		mov eax, 0x009DE564 	\n\
-		mov [eax], esp 	\n\
+		movl $0x009DE564, %%eax 	\n\
+		movl %%esp, (%%eax) 	\n\
 	 " : : : "eax" );
 	#endif
 
@@ -257,8 +259,57 @@ void rct2_draw()
 	} else {
 		//game
 	}
-	
+
+	if (gConfigGeneral.show_fps) {
+		rct2_draw_fps();
+	}
+
 	gCurrentDrawCount++;
+}
+
+static uint32 _lastFPSUpdateTicks;
+static uint32 _lastFPSTicks;
+static float _currentFPS;
+
+static float rct2_measure_fps()
+{
+	uint32 currentTicks = SDL_GetTicks();
+	if (currentTicks - _lastFPSUpdateTicks > 500) {
+		_lastFPSUpdateTicks = currentTicks;
+
+		uint32 frameDelta = currentTicks - _lastFPSTicks;
+		_currentFPS = 1000.0f / frameDelta;
+	}
+	_lastFPSTicks = currentTicks;
+	return _currentFPS;
+}
+
+static void rct2_draw_fps()
+{
+	rct_drawpixelinfo *dpi = RCT2_ADDRESS(RCT2_ADDRESS_SCREEN_DPI, rct_drawpixelinfo);
+	int x = RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_WIDTH, uint16) / 2;
+	int y = 2;
+
+	// Measure FPS
+	float fps = rct2_measure_fps();
+
+	// Format string
+	utf8 buffer[64];
+	utf8 *ch = buffer;
+	ch = utf8_write_codepoint(ch, FORMAT_MEDIUMFONT);
+	ch = utf8_write_codepoint(ch, FORMAT_OUTLINE);
+	ch = utf8_write_codepoint(ch, FORMAT_WHITE);
+
+	const char *formatString = (_currentFPS >= 100.0f ? "%.0f" : "%.1f");
+	sprintf(ch, formatString, _currentFPS);
+
+	// Draw Text
+	int stringWidth = gfx_get_string_width(buffer);
+	x = x - (stringWidth / 2);
+	gfx_draw_string(dpi, buffer, 0, x, y);
+
+	// Make area dirty so the text doesn't get drawn over the last
+	gfx_set_dirty_blocks(x - 16, y - 4, gLastDrawStringX + 16, 16);
 }
 
 int rct2_open_file(const char *path)
@@ -288,7 +339,7 @@ int rct2_open_file(const char *path)
 }
 
 /**
- * 
+ *
  *  rct2: 0x00674C95
  */
 int check_file_paths()
@@ -301,7 +352,7 @@ int check_file_paths()
 }
 
 /**
- * 
+ *
  *  rct2: 0x00674CA5
  */
 int check_file_path(int pathId)
@@ -326,12 +377,12 @@ int check_file_path(int pathId)
 
 	case PATH_ID_CUSTOM1:
 		if (file != NULL)
-			ride_music_info_list[36]->length = (uint32)SDL_RWsize(file); // Store file size in music_custom1_size @ 0x009AF164
+			gRideMusicInfoList[36]->length = (uint32)SDL_RWsize(file); // Store file size in music_custom1_size @ 0x009AF164
 		break;
 
 	case PATH_ID_CUSTOM2:
 		if (file != NULL)
-			ride_music_info_list[37]->length = (uint32)SDL_RWsize(file); // Store file size in music_custom2_size @ 0x009AF16E
+			gRideMusicInfoList[37]->length = (uint32)SDL_RWsize(file); // Store file size in music_custom2_size @ 0x009AF16E
 		break;
 	}
 
@@ -342,7 +393,7 @@ int check_file_path(int pathId)
 }
 
 /**
- * 
+ *
  *  rct2: 0x00674C0B
  */
 int check_files_integrity()
@@ -380,15 +431,15 @@ void rct2_update_2()
 
 	tick = SDL_GetTicks();
 
-	tick2 = tick - RCT2_GLOBAL(0x009DE580, sint32);
-	RCT2_GLOBAL(0x009DE588, sint16) = tick2 = min(tick2, 500);
+	tick2 = tick - RCT2_GLOBAL(RCT2_ADDRESS_LAST_TICK_COUNT, sint32);
+	RCT2_GLOBAL(RCT2_ADDRESS_TICKS_SINCE_LAST_UPDATE, sint16) = tick2 = min(tick2, 500);
 
-	RCT2_GLOBAL(0x009DE580, sint32) = tick;
+	RCT2_GLOBAL(RCT2_ADDRESS_LAST_TICK_COUNT, sint32) = tick;
 	if (RCT2_GLOBAL(RCT2_ADDRESS_GAME_PAUSED, uint8) == 0)
 		RCT2_GLOBAL(RCT2_ADDRESS_PALETTE_EFFECT_FRAME_NO, sint32) += tick2;
 
 	if (RCT2_GLOBAL(RCT2_ADDRESS_ON_TUTORIAL, uint8) != 0)
-		RCT2_GLOBAL(0x009DE588, sint16) = 31;
+		RCT2_GLOBAL(RCT2_ADDRESS_TICKS_SINCE_LAST_UPDATE, sint16) = 31;
 
 	// TODO: screenshot countdown process
 
@@ -403,7 +454,7 @@ void rct2_update_2()
 	else
 		game_update();
 
-	stop_completed_sounds(); // removes other sounds that are no longer playing in directsound
+	//stop_completed_sounds(); // removes other sounds that are no longer playing in directsound
 
 	twitch_update();
 	chat_update();
@@ -416,7 +467,7 @@ void rct2_endupdate()
 }
 
 /**
- * 
+ *
  *  rct2: 0x00674E6C
  */
 const utf8 *get_file_path(int pathId)
@@ -449,7 +500,14 @@ const utf8 *get_file_path(int pathId)
 		return path;
 	}
 
+	char *pathp = path + strnlen(path, sizeof(path));
+
 	strcat(path, file_paths[pathId]);
+
+	while (*pathp) {
+		if (*pathp == '\\') *pathp = platform_get_path_separator();
+		pathp++;
+	}
 
 	return path;
 }
@@ -504,7 +562,7 @@ void get_system_info()
 	HDC screenHandle = GetDC(NULL);
 	if (screenHandle) {
 		RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_CAP_BPP, sint32) = GetDeviceCaps(screenHandle, BITSPIXEL);
-		RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_CAP_RASTER_STRETCH, sint32) = GetDeviceCaps(screenHandle, RASTERCAPS) >> 8; 
+		RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_CAP_RASTER_STRETCH, sint32) = GetDeviceCaps(screenHandle, RASTERCAPS) >> 8;
 		ReleaseDC(NULL, screenHandle);
 	} else {
 		RCT2_GLOBAL(RCT2_ADDRESS_SCREEN_CAP_BPP, sint32) = 0;
@@ -530,17 +588,12 @@ void get_system_info()
  */
 void get_system_time()
 {
-#ifdef _WIN32
-	SYSTEMTIME systime;
-
-	GetSystemTime(&systime);
-	RCT2_GLOBAL(RCT2_ADDRESS_OS_TIME_DAY, sint16) = systime.wDay;
-	RCT2_GLOBAL(RCT2_ADDRESS_OS_TIME_MONTH, sint16) = systime.wMonth;
-	RCT2_GLOBAL(RCT2_ADDRESS_OS_TIME_YEAR, sint16) = systime.wYear;
-	RCT2_GLOBAL(RCT2_ADDRESS_OS_TIME_DAYOFWEEK, sint16) = systime.wDayOfWeek;
-#else
-	STUB();
-#endif // _WIN32
+	rct2_date date;
+	platform_get_date(&date);
+	RCT2_GLOBAL(RCT2_ADDRESS_OS_TIME_DAY, sint16) = date.day;
+	RCT2_GLOBAL(RCT2_ADDRESS_OS_TIME_MONTH, sint16) = date.month;
+	RCT2_GLOBAL(RCT2_ADDRESS_OS_TIME_YEAR, sint16) = date.year;
+	RCT2_GLOBAL(RCT2_ADDRESS_OS_TIME_DAYOFWEEK, sint16) = date.day_of_week;
 }
 
 /**
@@ -549,15 +602,10 @@ void get_system_time()
  */
 void get_local_time()
 {
-#ifdef _WIN32
-	SYSTEMTIME systime;
-	GetLocalTime(&systime);
-
-	RCT2_GLOBAL(RCT2_ADDRESS_OS_TIME_HOUR, sint16) = systime.wHour;
-	RCT2_GLOBAL(RCT2_ADDRESS_OS_TIME_MINUTE, sint16) = systime.wMinute;
-#else
-	STUB();
-#endif // _WIN32
+	rct2_time t;
+	platform_get_time(&t);
+	RCT2_GLOBAL(RCT2_ADDRESS_OS_TIME_HOUR, sint16) = t.hour;
+	RCT2_GLOBAL(RCT2_ADDRESS_OS_TIME_MINUTE, sint16) = t.minute;
 }
 
 /**
@@ -567,7 +615,12 @@ void get_local_time()
  */
 void *rct2_malloc(size_t numBytes)
 {
+	#ifdef _WIN32
 	return RCT2_CALLFUNC_1(0x004068B2, void*, size_t, numBytes);
+	#else
+	//log_warning("call rct's function");
+	return malloc(numBytes);
+	#endif // _WIN32
 }
 
 /**
@@ -577,7 +630,12 @@ void *rct2_malloc(size_t numBytes)
  */
 void *rct2_realloc(void *block, size_t numBytes)
 {
+	#ifdef _WIN32
 	return RCT2_CALLFUNC_2(0x004068BD, void*, void*, size_t, block, numBytes);
+	#else
+	//log_warning("call rct's function");
+	return realloc(block, numBytes);
+	#endif // _WIN32
 }
 
 /**
@@ -586,5 +644,10 @@ void *rct2_realloc(void *block, size_t numBytes)
  */
 void rct2_free(void *block)
 {
+	#ifdef _WIN32
 	RCT2_CALLPROC_1(0x004068CD, void*, block);
+	#else
+	//log_warning("call rct's function");
+	free(block);
+	#endif // _WIN32
 }

@@ -300,7 +300,7 @@
     <ClCompile Include="..\src\platform\osx.c">
       <Filter>Source\Platform</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\platform\unix.c">
+    <ClCompile Include="..\src\platform\posix.c">
       <Filter>Source\Platform</Filter>
     </ClCompile>
     <ClCompile Include="..\src\platform\shared.c">
@@ -539,6 +539,18 @@
     </ClCompile>
     <ClCompile Include="..\src\localisation\language.cpp">
       <Filter>Source\Localisation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ride\track_paint.c">
+      <Filter>Source\Ride</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\platform\linux.c">
+      <Filter>Source\Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\windows\server_start.c">
+      <Filter>Source\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\interface\colour.c">
+      <Filter>Source\Interface</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -805,6 +817,12 @@
     </ClInclude>
     <ClInclude Include="..\src\core\Math.hpp">
       <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ride\track_paint.h">
+      <Filter>Source\Ride</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\interface\colour.h">
+      <Filter>Source\Interface</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

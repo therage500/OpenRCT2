@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -27,6 +27,7 @@
 #include "../ride/ride.h"
 #include "../ride/vehicle.h"
 #include "../world/park.h"
+#include "colour.h"
 
 struct rct_window;
 union rct_window_event;
@@ -102,7 +103,7 @@ typedef struct {
 	uint16 v_thumb_bottom;		// 0x10
 } rct_scroll;
 
-/** 
+/**
  * Viewport focus structure.
  * size: 0xA
  * Use sprite.type to work out type.
@@ -122,7 +123,7 @@ typedef struct{
 	uint16 sprite_id; //0x482
 	uint8 pad_484;
 	uint8 type; //0x485 & VIEWPORT_FOCUS_TYPE_MASK
-	uint16 pad_486; 
+	uint16 pad_486;
 	uint8 rotation; //0x488
 	uint8 zoom; //0x489
 } sprite_focus;
@@ -286,7 +287,7 @@ typedef enum {
 	WE_RESIZE = 2,
 	WE_MOUSE_DOWN = 3,
 	WE_DROPDOWN = 4,
-	WE_UNKNOWN_05 = 5, 
+	WE_UNKNOWN_05 = 5,
 	// Unknown 05: Used to update tabs that are not being animated
 	// see window_peep. When the overview tab is not highlighted the
 	// items being carried such as hats/balloons still need to be shown
@@ -329,13 +330,13 @@ typedef enum {
 
 	WF_STICK_TO_BACK = (1 << 0),
 	WF_STICK_TO_FRONT = (1 << 1),
-	WF_2 = (1 << 2),
+	WF_NO_SCROLLING = (1 << 2), // User is unable to scroll this viewport
 	WF_SCROLLING_TO_LOCATION = (1 << 3),
 	WF_TRANSPARENT = (1 << 4),
-	WF_5 = (1 << 5),
+	WF_NO_BACKGROUND = (1 << 5), // Instead of half transparency, completely remove the window background
 	WF_7 = (1 << 7),
 	WF_RESIZABLE = (1 << 8),
-	WF_9 = (1 << 9),
+	WF_NO_AUTO_CLOSE = (1 << 9), // Don't auto close this window if too many windows are open
 	WF_10 = (1 << 10),
 	WF_WHITE_BORDER_ONE = (1 << 12),
 	WF_WHITE_BORDER_MASK = (1 << 12) | (1 << 13),
@@ -381,6 +382,7 @@ enum {
 	INPUT_STATE_VIEWPORT_LEFT = 6,
 	INPUT_STATE_SCROLL_LEFT = 7,
 	INPUT_STATE_RESIZING = 8,
+	INPUT_STATE_SCROLL_RIGHT = 9
 };
 
 enum {
@@ -450,6 +452,7 @@ enum {
 	WC_PLAYER_LIST = 125,
 	WC_NETWORK_STATUS = 126,
 	WC_SERVER_LIST = 127,
+	WC_SERVER_START = 128,
 
 	// Only used for colour schemes
 	WC_STAFF = 220,
@@ -485,8 +488,16 @@ enum {
 	LOADSAVETYPE_NETWORK = 1 << 4,
 };
 
-extern bool gLoadSaveTitleSequenceSave;
+enum {
+	MODAL_RESULT_FAIL = -1,
+	MODAL_RESULT_CANCEL,
+	MODAL_RESULT_OK
+};
 
+typedef void (*modal_callback)(int result);
+
+extern bool gLoadSaveTitleSequenceSave;
+extern modal_callback gLoadSaveCallback;
 
 // rct2: 0x01420078
 extern rct_window* g_window_list;
@@ -620,7 +631,9 @@ void window_cheats_open();
 void window_player_list_open();
 void window_network_status_open(const char* text);
 void window_network_status_close();
+void window_network_status_open_password();
 void window_server_list_open();
+void window_server_start_open();
 
 void window_research_open();
 void window_research_development_page_paint(rct_window *w, rct_drawpixelinfo *dpi, int baseWidgetIndex);

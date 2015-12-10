@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
@@ -85,7 +85,7 @@ void marketing_update()
 		gMarketingCampaignDaysLeft[campaign] &= ~CAMPAIGN_ACTIVE_FLAG;
 		if (active)
 			continue;
-		
+
 		if (--gMarketingCampaignDaysLeft[campaign] != 0)
 			continue;
 
@@ -94,10 +94,10 @@ void marketing_update()
 		// This sets the string parameters for the marketing types that have an argument.
 		if (campaign == ADVERTISING_CAMPAIGN_RIDE_FREE || campaign == ADVERTISING_CAMPAIGN_RIDE) {
 			rct_ride* ride = GET_RIDE(campaignItem);
-			RCT2_GLOBAL(0x013CE952, uint16) = ride->name;
+			RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint16) = ride->name;
 			RCT2_GLOBAL(0x013CE954, uint32) = ride->name_arguments;
 		} else if (campaign == ADVERTISING_CAMPAIGN_FOOD_OR_DRINK_FREE) {
-			RCT2_GLOBAL(0x013CE952, uint16) = ShopItemStringIds[campaignItem].plural;
+			RCT2_GLOBAL(RCT2_ADDRESS_COMMON_FORMAT_ARGS, uint16) = ShopItemStringIds[campaignItem].plural;
 		}
 
 		news_item_add_to_queue(NEWS_ITEM_MONEY, STR_MARKETING_FINISHED_BASE + campaign, 0);
@@ -116,7 +116,7 @@ void marketing_set_guest_campaign(rct_peep *peep, int campaign)
 		peep->voucher_type = VOUCHER_TYPE_RIDE_FREE;
 		peep->voucher_arguments = gMarketingCampaignRideIndex[campaign];
 		peep->guest_heading_to_ride_id = gMarketingCampaignRideIndex[campaign];
-		peep->var_C6 = 240;
+		peep->peep_is_lost_countdown = 240;
 		break;
 	case ADVERTISING_CAMPAIGN_PARK_ENTRY_HALF_PRICE:
 		peep->item_standard_flags |= PEEP_ITEM_VOUCHER;
@@ -131,7 +131,7 @@ void marketing_set_guest_campaign(rct_peep *peep, int campaign)
 		break;
 	case ADVERTISING_CAMPAIGN_RIDE:
 		peep->guest_heading_to_ride_id = gMarketingCampaignRideIndex[campaign];
-		peep->var_C6 = 240;
+		peep->peep_is_lost_countdown = 240;
 		break;
 	}
 }
@@ -143,7 +143,7 @@ void marketing_start_campaign(int type, int rideOrItem, int numWeeks)
 }
 
 /**
- * 
+ *
  * rct2: 0x0069E73C
  */
 void game_command_start_campaign(int* eax, int* ebx, int* ecx, int* edx, int* esi, int* edi, int* ebp)

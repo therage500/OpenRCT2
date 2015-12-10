@@ -1,9 +1,9 @@
 /*****************************************************************************
  * Copyright (c) 2014 Ted John, Kevin Burke, Matthias Lanzinger
  * OpenRCT2, an open source clone of Roller Coaster Tycoon 2.
- * 
+ *
  * This file is part of OpenRCT2.
- * 
+ *
  * OpenRCT2 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -27,6 +27,7 @@
 
 #define RCT2_ADDRESS(address, type)				((type*)(address))
 #define RCT2_GLOBAL(address, type)				(*((type*)(address)))
+#ifdef _WIN32
 #define RCT2_CALLPROC(address)					(((void(*)())(address))())
 #define RCT2_CALLFUNC(address, returnType)		(((returnType(*)())(address))())
 
@@ -36,6 +37,16 @@
 #define RCT2_CALLFUNC_4(address, returnType, a1, a2, a3, a4, v1, v2, v3, v4)	(((returnType(*)(a1, a2, a3, a4))(address))(v1, v2, v3, v4))
 #define RCT2_CALLFUNC_5(address, returnType, a1, a2, a3, a4, a5, v1, v2, v3, v4, v5)	(((returnType(*)(a1, a2, a3, a4, a5))(address))(v1, v2, v3, v4, v5))
 #define RCT2_CALLFUNC_6(address, returnType, a1, a2, a3, a4, a5, a6, v1, v2, v3, v4, v5, v6)	(((returnType(*)(a1, a2, a3, a4, a5, a6))(address))(v1, v2, v3, v4, v5, v6))
+#else
+#define RCT2_CALLPROC(address)
+#define RCT2_CALLFUNC(address, returnType)
+#define RCT2_CALLFUNC_1(address, returnType, a1, v1)
+#define RCT2_CALLFUNC_2(address, returnType, a1, a2, v1, v2)
+#define RCT2_CALLFUNC_3(address, returnType, a1, a2, a3, v1, v2, v3)
+#define RCT2_CALLFUNC_4(address, returnType, a1, a2, a3, a4, v1, v2, v3, v4)
+#define RCT2_CALLFUNC_5(address, returnType, a1, a2, a3, a4, a5, v1, v2, v3, v4, v5)
+#define RCT2_CALLFUNC_6(address, returnType, a1, a2, a3, a4, a5, a6, v1, v2, v3, v4, v5, v6)
+#endif // _WIN32
 
 #define RCT2_CALLPROC_1(address, a1, v1)									RCT2_CALLFUNC_1(address, void, a1, v1)
 #define RCT2_CALLPROC_2(address, a1, a2, v1, v2)							RCT2_CALLFUNC_2(address, void, a1, a2, v1, v2)
@@ -64,24 +75,10 @@
 #define RCT2_ADDRESS_BTM_TOOLBAR_DIRTY_FLAGS		0x009A9804
 #define RCT2_ADDRESS_MAP_TOOLTIP_ARGS				0x009A9808
 
-// #define RCT2_ADDRESS_SCENARIO_LIST				0x009A9FF4
-// #define RCT2_ADDRESS_NUM_SCENARIOS				0x009AA008
-
 #define RCT2_ADDRESS_APP_PATH						0x009AA214
-
-#define RCT2_ADDRESS_DSOUND_GUID					0x009AAC5D
-
-#define RCT2_ADDRESS_CONFIG_SOUND_SW_BUFFER			0x009AAC6E
-// When all sounds reversed replace with gConfigSound.ride_music
-#define RCT2_ADDRESS_CONFIG_MUSIC					0x009AAC72
 
 #define RCT2_ADDRESS_CONFIG_FLAGS					0x009AAC74
 
-// MAX vehicle sounds not used anymore
-#define RCT2_ADDRESS_CONFIG_MAX_VEHICLE_SOUNDS		0x009AAC75
-
-#define RCT2_ADDRESS_CONFIG_MAX_NO_SOUNDS			0x009AAC76
-#define RCT2_ADDRESS_CONFIG_SOUND_QUALITY			0x009AAC77
 #define RCT2_ADDRESS_CONFIG_METRIC					0x009AAC78
 #define RCT2_ADDRESS_CONFIG_TEMPERATURE				0x009AAC79
 #define RCT2_ADDRESS_CONFIG_KEYBOARD_SHORTCUTS		0x009AAC7A
@@ -192,6 +189,8 @@
 #define RCT2_ADDRESS_CURRENT_SCROLL_AREA			0x009DE548
 #define RCT2_ADDRESS_CURRENT_SCROLL_ID				0x009DE54C
 
+#define RCT2_ADDRESS_TICKS_SINCE_DRAG_START         0x009DE540
+
 #define RCT2_ADDRESS_PICKEDUP_PEEP_SPRITE			0x009DE550
 #define RCT2_ADDRESS_PICKEDUP_PEEP_X				0x009DE554
 #define RCT2_ADDRESS_PICKEDUP_PEEP_Y				0x009DE556
@@ -203,7 +202,11 @@
 // Of type viewport interaction
 #define RCT2_ADDRESS_PAINT_SETUP_CURRENT_TYPE		0x009DE570
 
+#define RCT2_ADDRESS_LAST_TICK_COUNT                0x009DE580
+
 #define RCT2_ADDRESS_PALETTE_EFFECT_FRAME_NO		0x009DE584
+
+#define RCT2_ADDRESS_TICKS_SINCE_LAST_UPDATE        0x009DE588
 
 // Flags:
 // 0x1 Enable selection
@@ -246,18 +249,11 @@
 
 #define RCT2_ADDRESS_WINDOW_DPI						0x009DEA74
 
+#define RCT2_ADDRESS_WINDOW_UPDATE_TICKS            0x009DEB7C
+
 #define RCT2_ADDRESS_TEXTINPUT_WIDGETINDEX			0x009DEB88
 #define RCT2_ADDRESS_TEXTINPUT_WINDOWNUMBER			0x009DEB8A
 #define RCT2_ADDRESS_TEXTINPUT_WINDOWCLASS			0x009DEB8C
-
-#define RCT2_ADDRESS_DSOUND_BUFFERS					0x009E1AB0
-#define RCT2_ADDRESS_NUM_DSOUND_DEVICES				0x009E2B88
-#define RCT2_ADDRESS_DSOUND_DEVICES					0x009E2B8C
-#define RCT2_ADDRESS_SOUND_EFFECTS_MAPPING			0x009E2B94
-#define RCT2_ADDRESS_SOUNDLIST_BEGIN				0x009E2B98
-#define RCT2_ADDRESS_SOUNDLIST_END					0x009E2B9C
-#define RCT2_ADDRESS_DIRECTSOUND					0x009E2BA0
-#define RCT2_ADDRESS_DSOUND_DEVICES_COUNTER			0x009E2BAC
 
 #define RCT2_ADDRESS_CMDLINE						0x009E2D98
 
@@ -507,6 +503,7 @@
 #define RCT2_ADDRESS_CURRENT_FONT_FLAGS				0x013CE9A2
 
 #define RCT2_ADDRESS_TILE_MAP_ELEMENT_POINTERS		0x013CE9A4
+#define RCT2_ADDRESS_NEXT_FREE_MAP_ELEMENT			0x0140E9A4
 #define RCT2_ADDRESS_GAME_COMMAND_ERROR_TEXT		0x0141E9AC
 #define RCT2_ADDRESS_GAME_COMMAND_ERROR_TITLE		0x0141E9AE
 
@@ -537,7 +534,7 @@
 #define RCT2_ADDRESS_NEW_WINDOW_PTR					0x014234B8
 
 #define RCT2_ADDRESS_VIEWPORT_LIST					0x014234BC
-// Null Terminated list of active viewport pointers. 
+// Null Terminated list of active viewport pointers.
 // This is also the end of RCT2_ADDRESS_VIEWPORT_LIST.
 #define RCT2_ADDRESS_ACTIVE_VIEWPORT_PTR_ARRAY		0x01423570
 
@@ -613,9 +610,9 @@
 
 #define RCT2_ADDRESS_INPUT_QUEUE					0x01424340
 
-#define RCT2_ADDRESS_AUDIO_INFO						0x01425B40
+#define RCT2_ADDRESS_PALETTE						0x01424680
 
-#define RCT2_ADDRESS_SOUND_CHANNEL_LIST				0x014262E0
+#define RCT2_ADDRESS_AUDIO_INFO						0x01425B40
 
 #define RCT2_ADDRESS_COMMON_FORMAT_ARGS             0x013CE952
 
@@ -638,6 +635,7 @@
 #define RCT2_ADDRESS_DPI_LINE_LENGTH_GLOBAL			0x9ABDB0	//uint16 width+pitch
 #define RCT2_ADDRESS_CONFIG_FIRST_TIME_LOAD_OBJECTS 0x009AA00D
 #define RCT2_ADDRESS_CONFIG_FIRST_TIME_LOAD_CONFIG	0x009AB4C6
+#define RCT2_ADDRESS_NAUSEA_THRESHOLDS				0x00982390  //uint16
 
 #pragma endregion
 
@@ -652,48 +650,7 @@
  *P = Parity flag
  *All other bits are undefined.
  */
-static int RCT2_CALLPROC_X(int address, int _eax, int _ebx, int _ecx, int _edx, int _esi, int _edi, int _ebp)
-{
-	#ifdef _MSC_VER
-	__asm {
-		push ebp
-		push address
-		mov eax, _eax
-		mov ebx, _ebx
-		mov ecx, _ecx
-		mov edx, _edx
-		mov esi, _esi
-		mov edi, _edi
-		mov ebp, _ebp
-		call [esp]
-		lahf
-		pop ebp
-		pop ebp
-	}
-	#else
-	__asm__ ( "\
-	\n\
-		push ebx \n\
-		push ebp \n\
-		push %[address] 	\n\
-		mov eax, %[_eax] 	\n\
-		mov ebx, %[_ebx] 	\n\
-		mov ecx, %[_ecx] 	\n\
-		mov edx, %[_edx] 	\n\
-		mov esi, %[_esi] 	\n\
-		mov edi, %[_edi] 	\n\
-		mov ebp, %[_ebp] 	\n\
-		call [esp] 	\n\
-		lahf \n\
-		add esp, 4 	\n\
-		pop ebp \n\
-		pop ebx \n\
-	 " : [address] "+m" (address), [_eax] "+m" (_eax), [_ebx] "+m" (_ebx), [_ecx] "+m" (_ecx), [_edx] "+m" (_edx), [_esi] "+m" (_esi), [_edi] "+m" (_edi), [_ebp] "+m" (_ebp) 
-		:
-		: "eax","ecx","edx","esi","edi"
-	);
-	#endif
-}
+int RCT2_CALLPROC_X(int address, int _eax, int _ebx, int _ecx, int _edx, int _esi, int _edi, int _ebp);
 
 static int RCT2_CALLPROC_EBPSAFE(int address)
 {
@@ -711,148 +668,7 @@ static int RCT2_CALLPROC_EBPSAFE(int address)
  *P = Parity flag
  *All other bits are undefined.
  */
-static int RCT2_CALLFUNC_X(int address, int *_eax, int *_ebx, int *_ecx, int *_edx, int *_esi, int *_edi, int *_ebp)
-{
-	#ifdef _MSC_VER
-	__asm {
-		// Store C's base pointer
-		push ebp
-		push ebx
-		// Store address to call
-		push address
-
-		// Set all registers to the input values
-		mov eax, [_eax]
-		mov eax, [eax]
-		mov ebx, [_ebx]
-		mov ebx, [ebx]
-		mov ecx, [_ecx]
-		mov ecx, [ecx]
-		mov edx, [_edx]
-		mov edx, [edx]
-		mov esi, [_esi]
-		mov esi, [esi]
-		mov edi, [_edi]
-		mov edi, [edi]
-		mov ebp, [_ebp]
-		mov ebp, [ebp]
-
-		// Call function
-		call [esp]
-		
-		// Store output eax
-		push eax
-		push ebp
-		push ebx
-		mov ebp, [esp + 20]
-		mov ebx, [esp + 16]
-
-		// Get resulting ecx, edx, esi, edi registers
-
-		mov eax, [_edi]
-		mov [eax], edi
-		mov eax, [_esi]
-		mov [eax], esi
-		mov eax, [_edx]
-		mov [eax], edx
-		mov eax, [_ecx]
-		mov [eax], ecx
-
-		// Pop ebx reg into ecx
-		pop ecx		
-		mov eax, [_ebx]
-		mov[eax], ecx
-
-		// Pop ebp reg into ecx
-		pop ecx
-		mov eax, [_ebp]
-		mov[eax], ecx
-
-		pop eax
-		// Get resulting eax register
-		mov ecx, [_eax]
-		mov [ecx], eax
-
-		// Save flags as return in eax
-		lahf
-		// Pop address
-		pop ebp
-		
-		pop ebx
-		pop ebp
-	}
-	#else
-	__asm__ ( "\
-	       \n\
-                /* Store C's base pointer*/     \n\
-                push ebp        \n\
-                push ebx        \n\
-        \n\
-                /* Store %[address] to call*/   \n\
-                push %[address]         \n\
-        \n\
-                /* Set all registers to the input values*/      \n\
-                mov eax, [%[_eax]]      \n\
-                mov eax, [eax]  \n\
-                mov ebx, [%[_ebx]]      \n\
-                mov ebx, [ebx]  \n\
-                mov ecx, [%[_ecx]]      \n\
-                mov ecx, [ecx]  \n\
-                mov edx, [%[_edx]]      \n\
-                mov edx, [edx]  \n\
-                mov esi, [%[_esi]]      \n\
-                mov esi, [esi]  \n\
-                mov edi, [%[_edi]]      \n\
-                mov edi, [edi]  \n\
-                mov ebp, [%[_ebp]]      \n\
-                mov ebp, [ebp]  \n\
-        \n\
-                /* Call function*/      \n\
-                call [esp]      \n\
-        \n\
-				/* Store output eax */ \n\
-				push eax \n\
-				push ebp \n\
-				push ebx \n\
-				mov ebp, [esp + 20] \n\
-				mov ebx, [esp + 16] \n\
-                /* Get resulting ecx, edx, esi, edi registers*/       \n\
-                mov eax, [%[_edi]]      \n\
-                mov [eax], edi  \n\
-                mov eax, [%[_esi]]      \n\
-                mov [eax], esi  \n\
-                mov eax, [%[_edx]]      \n\
-                mov [eax], edx  \n\
-                mov eax, [%[_ecx]]      \n\
-                mov [eax], ecx  \n\
-				/* Pop ebx reg into ecx*/ \n\
-				pop ecx		\n\
-				mov eax, [%[_ebx]] \n\
-				mov [eax], ecx \n\
-				\n\
-				/* Pop ebp reg into ecx */\n\
-				pop ecx \n\
-				mov eax, [%[_ebp]] \n\
-				mov [eax], ecx \n\
-				\n\
-				pop eax \n\
-				/* Get resulting eax register*/ \n\
-				mov ecx, [%[_eax]] \n\
-				mov [ecx], eax \n\
-				\n\
-				/* Save flags as return in eax*/  \n\
-				lahf \n\
-				/* Pop address*/ \n\
-				pop ebp \n\
-				\n\
-				pop ebx \n\
-				pop ebp \n\
-	 " : [address] "+m" (address), [_eax] "+m" (_eax), [_ebx] "+m" (_ebx), [_ecx] "+m" (_ecx), [_edx] "+m" (_edx), [_esi] "+m" (_esi), [_edi] "+m" (_edi), [_ebp] "+m" (_ebp) 
-		:
-		: "eax","ecx","edx","esi","edi"
-	);
-	#endif
-}
+int RCT2_CALLFUNC_X(int address, int *_eax, int *_ebx, int *_ecx, int *_edx, int *_esi, int *_edi, int *_ebp);
 
 typedef struct {
 	union {
